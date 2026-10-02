@@ -10,17 +10,19 @@ node_modules/
 backend/logs/
 backend/recordings/
 
-# PostgreSQL / local data
-infrastructure/postgres/data/
-
-# Grafana generated data
+# Grafana runtime data
+infrastructure/grafana/*.db
+infrastructure/grafana/plugins/
 infrastructure/grafana/data/
 
-# Loki generated data
+# Loki runtime data
 infrastructure/loki/data/
 
-# Promtail generated data
+# Promtail runtime data
 infrastructure/promtail/data/
+
+# PostgreSQL runtime data
+infrastructure/postgres/data/
 
 # OS files
 .DS_Store
