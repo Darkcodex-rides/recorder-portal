@@ -1,0 +1,25 @@
+const multer = require("multer");
+const path = require("path");
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, path.join(__dirname, "../../recordings"));
+  },
+
+  filename: (req, file, cb) => {
+  const extension = path.extname(file.originalname);
+
+  const uniqueName = `${Date.now()}-recording${extension}`;
+
+  cb(null, uniqueName);
+ },
+});
+
+const upload = multer({
+  storage,
+  limits: {
+    fileSize: 50 * 1024 * 1024,
+  },
+});
+
+module.exports = upload;
