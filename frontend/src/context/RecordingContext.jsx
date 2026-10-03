@@ -6,14 +6,6 @@ import {
 } from "react";
 
 import {
-  saveRecording,
-  getRecordings,
-  deleteRecordingFromStorage,
-} from "../utils/recordingStorage";
-
-// import { getRecordings as getBackendRecordings } from "../services/api";
-//import { getRecordings, deleteRecording } from "../services/api";
-import {
   getRecordings as getBackendRecordings,
   deleteRecording,
 } from "../services/api";
@@ -25,63 +17,76 @@ export function RecordingProvider({ children }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-  const loadRecordings = async () => {
-    try {
-      const response = await getBackendRecordings();
+    const loadRecordings = async () => {
+      const token = localStorage.getItem("token");
 
-      setRecordings(response.data);
-    } catch (error) {
-      console.error(
-        "Failed to load recordings:",
-        error
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      // Don't call protected API if user is not logged in
+      if (!token) {
+        setRecordings([]);
+        setIsLoading(false);
+        return;
+      }
 
-  loadRecordings();
-}, []);
+      try {
+        console.log("Loading recordings from backend...");
+
+        const response = await getBackendRecordings();
+
+        console.log("Recordings loaded:", response);
+
+        setRecordings(response.data || []);
+      } catch (error) {
+        console.error(
+          "Failed to load recordings:",
+          error
+        );
+
+        setRecordings([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadRecordings();
+  }, []);
 
   const addRecording = async (recording) => {
-    try {
-      await saveRecording(recording);
-
-      setRecordings((previousRecordings) => [
-        recording,
-        ...previousRecordings,
-      ]);
-    } catch (error) {
-      console.error(
-        "Failed to save recording:",
-        error
-      );
-    }
+    setRecordings((previousRecordings) => [
+      recording,
+      ...previousRecordings,
+    ]);
   };
 
   const handleDeleteRecording = async (id) => {
-  try {
-    await deleteRecording(id);
+    try {
+      await deleteRecording(id);
 
-    setRecordings((previousRecordings) =>
-      previousRecordings.filter(
-        (recording) => recording.id !== id
-      )
-    );
+      setRecordings((previousRecordings) =>
+        previousRecordings.filter(
+          (recording) => recording.id !== id
+        )
+      );
 
-    console.log("Recording deleted successfully:", id);
-  } catch (error) {
-    console.error("Failed to delete recording:", error);
-    alert("Failed to delete recording.");
-  }
-};
+      console.log(
+        "Recording deleted successfully:",
+        id
+      );
+    } catch (error) {
+      console.error(
+        "Failed to delete recording:",
+        error
+      );
+
+      alert("Failed to delete recording.");
+    }
+  };
 
   return (
     <RecordingContext.Provider
       value={{
         recordings,
         addRecording,
-        deleteRecording :handleDeleteRecording,
+        deleteRecording: handleDeleteRecording,
         isLoading,
       }}
     >

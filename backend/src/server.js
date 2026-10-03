@@ -5,6 +5,7 @@ require("dotenv").config();
 
 const pool = require("./config/database");
 const recordingRoutes = require("./routes/recordingRoutes");
+const authRoutes = require("./routes/authRoutes");
 const setupWebSocket = require("./websocket/recordingSocket");
 const logger = require("./utils/logger");
 
@@ -24,6 +25,7 @@ app.use(express.json());
 
 // Recording routes
 app.use("/api/recordings", recordingRoutes);
+app.use("/api/auth", authRoutes);
 
 // Health check
 app.get("/api/health", async (req, res) => {

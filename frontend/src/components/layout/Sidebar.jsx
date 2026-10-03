@@ -5,6 +5,8 @@ import {
   Activity,
 } from "lucide-react";
 
+import { NavLink } from "react-router-dom";
+
 function Sidebar() {
   return (
     <aside className="sidebar">
@@ -15,20 +17,35 @@ function Sidebar() {
       </div>
 
       <nav className="sidebar-nav">
-        <a href="/" className="sidebar-link active">
+        <NavLink
+          to="/"
+          className={({ isActive }) =>
+            `sidebar-link ${isActive ? "active" : ""}`
+          }
+        >
           <LayoutDashboard size={20} />
           <span>Dashboard</span>
-        </a>
+        </NavLink>
 
-        <a href="/recordings" className="sidebar-link">
+        <NavLink
+          to="/recordings"
+          className={({ isActive }) =>
+            `sidebar-link ${isActive ? "active" : ""}`
+          }
+        >
           <ListVideo size={20} />
           <span>Recordings</span>
-        </a>
+        </NavLink>
 
-        <a href="/observability" className="sidebar-link">
+        <NavLink
+          to="/observability"
+          className={({ isActive }) =>
+            `sidebar-link ${isActive ? "active" : ""}`
+          }
+        >
           <Activity size={20} />
           <span>Observability</span>
-        </a>
+        </NavLink>
       </nav>
     </aside>
   );

@@ -1,10 +1,6 @@
 import AudioRecorder from "../../components/recorder/AudioRecorder";
-import RecordingList from "../../components/recordings/RecordingList";
-import useWebSocket from "../../hooks/useWebSocket";
 
 function Dashboard() {
-  const { sendMessage } = useWebSocket();
-
   return (
     <div>
       <h1>Dashboard</h1>
@@ -14,10 +10,6 @@ function Dashboard() {
       </p>
 
       <AudioRecorder />
-
-      <RecordingList />
-
-      
     </div>
   );
 }
