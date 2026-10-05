@@ -1,4 +1,5 @@
 const { WebSocketServer } = require("ws");
+
 const logger = require("../utils/logger");
 
 function setupWebSocket(server) {
@@ -8,7 +9,6 @@ function setupWebSocket(server) {
   });
 
   wss.on("connection", (ws) => {
-    //console.log("WebSocket client connected");
     logger.info("WebSocket client connected");
 
     ws.send(
@@ -19,83 +19,98 @@ function setupWebSocket(server) {
     );
 
     ws.on("message", (message) => {
-  try {
-    const data = JSON.parse(message);
+      try {
+        const data = JSON.parse(
+          message.toString()
+        );
 
-    // console.log(
-    //   "WebSocket message received:",
-    //   data
-    // );
+        if (
+          !data ||
+          typeof data !== "object" ||
+          Array.isArray(data)
+        ) {
+          ws.send(
+            JSON.stringify({
+              type: "error",
+              message: "Invalid message format",
+            })
+          );
 
-    logger.info(
-      "WebSocket message received",
-      data
-    );
+          return;
+        }
 
-    if (data.type === "recording:start") {
-      ws.send(
-        JSON.stringify({
-          type: "recording:status",
-          status: "Recording",
-          message: "Recording started",
-        })
-      );
+        logger.info(
+          "WebSocket message received",
+          data
+        );
 
-      return;
-    }
+        if (data.type === "recording:start") {
+          ws.send(
+            JSON.stringify({
+              type: "recording:status",
+              status: "Recording",
+              message: "Recording started",
+            })
+          );
 
-    if (data.type === "recording:stop") {
-      ws.send(
-        JSON.stringify({
-          type: "recording:status",
-          status: "Saving",
-          message: "Recording stopped",
-        })
-      );
+          return;
+        }
 
-      return;
-    }
+        if (data.type === "recording:stop") {
+          ws.send(
+            JSON.stringify({
+              type: "recording:status",
+              status: "Saving",
+              message: "Recording stopped",
+            })
+          );
 
-    ws.send(
-      JSON.stringify({
-        type: "ack",
-        message: "Message received",
-        data,
-      })
-    );
-  } catch (error) {
-    // console.error(
-    //   "Invalid WebSocket message:",
-    //   error.message
-    // );
+          return;
+        }
 
-    logger.error(
-  "Invalid WebSocket message",
-  {
-    error: error.message,
-  }
-);
+        ws.send(
+          JSON.stringify({
+            type: "ack",
+            message: "Message received",
+            data,
+          })
+        );
+      } catch (error) {
+        logger.error(
+          "Invalid WebSocket message",
+          {
+            error: error.message,
+          }
+        );
 
-  }
-});
+        ws.send(
+          JSON.stringify({
+            type: "error",
+            message: "Invalid JSON message",
+          })
+        );
+      }
+    });
 
     ws.on("close", () => {
-      //console.log("WebSocket client disconnected");
-      logger.info("WebSocket client disconnected");
+      logger.info(
+        "WebSocket client disconnected"
+      );
     });
 
     ws.on("error", (error) => {
-     // console.error("WebSocket error:", error);
-     logger.error(
-  "WebSocket error",
-  {
-    error: error.message,
-  }
-);
+      logger.error(
+        "WebSocket error",
+        {
+          error: error.message,
+        }
+      );
     });
   });
 
-  console.log("WebSocket server initialized on /ws");
+  logger.info(
+    "WebSocket server initialized on /ws"
+  );
 
   return wss;
 }

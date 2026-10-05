@@ -5,26 +5,32 @@ const logger = require("../utils/logger");
 
 async function getRecordings(req, res) {
   try {
-    const result = await pool.query(`
+    const result = await pool.query(
+      `
       SELECT
         id,
         name,
         duration,
         file_name,
-        file_path,
         mime_type,
         file_size,
         created_at
       FROM recordings
+      WHERE user_id = $1
       ORDER BY created_at DESC
-    `);
+      `,
+      [req.user.id]
+    );
 
     res.json({
       success: true,
       data: result.rows,
     });
   } catch (error) {
-    console.error("Failed to fetch recordings:", error);
+    logger.error("Failed to fetch recordings", {
+      error: error.message,
+      userId: req.user.id,
+    });
 
     res.status(500).json({
       success: false,
@@ -44,16 +50,29 @@ async function createRecording(req, res) {
       fileSize,
     } = req.body;
 
-    if (!name) {
+    const normalizedName = name?.trim();
+
+    if (!normalizedName) {
       return res.status(400).json({
         success: false,
         message: "Recording name is required",
       });
     }
 
+    const recordingDuration =
+      Number(duration) || 0;
+
+    if (recordingDuration < 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Recording duration cannot be negative",
+      });
+    }
+
     const result = await pool.query(
       `
       INSERT INTO recordings (
+        user_id,
         name,
         duration,
         file_name,
@@ -61,12 +80,13 @@ async function createRecording(req, res) {
         mime_type,
         file_size
       )
-      VALUES ($1, $2, $3, $4, $5, $6)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
       `,
       [
-        name,
-        duration || 0,
+        req.user.id,
+        normalizedName,
+        recordingDuration,
         fileName || null,
         filePath || null,
         mimeType || null,
@@ -79,7 +99,10 @@ async function createRecording(req, res) {
       data: result.rows[0],
     });
   } catch (error) {
-    console.error("Failed to create recording:", error);
+    logger.error("Failed to create recording", {
+      error: error.message,
+      userId: req.user.id,
+    });
 
     res.status(500).json({
       success: false,
@@ -99,14 +122,14 @@ async function getRecordingById(req, res) {
         name,
         duration,
         file_name,
-        file_path,
         mime_type,
         file_size,
         created_at
       FROM recordings
       WHERE id = $1
+        AND user_id = $2
       `,
-      [id]
+      [id, req.user.id]
     );
 
     if (result.rows.length === 0) {
@@ -121,7 +144,11 @@ async function getRecordingById(req, res) {
       data: result.rows[0],
     });
   } catch (error) {
-    console.error("Failed to fetch recording:", error);
+    logger.error("Failed to fetch recording", {
+      error: error.message,
+      recordingId: req.params.id,
+      userId: req.user.id,
+    });
 
     res.status(500).json({
       success: false,
@@ -138,9 +165,10 @@ async function deleteRecording(req, res) {
       `
       DELETE FROM recordings
       WHERE id = $1
+        AND user_id = $2
       RETURNING *
       `,
-      [id]
+      [id, req.user.id]
     );
 
     if (result.rows.length === 0) {
@@ -153,9 +181,10 @@ async function deleteRecording(req, res) {
     const deletedRecording = result.rows[0];
 
     logger.info("Recording deleted", {
-  recordingId: deletedRecording.id,
-  name: deletedRecording.name,
-});
+      recordingId: deletedRecording.id,
+      userId: req.user.id,
+      name: deletedRecording.name,
+    });
 
     if (deletedRecording.file_path) {
       const filePath = path.resolve(
@@ -165,28 +194,36 @@ async function deleteRecording(req, res) {
       try {
         await fs.promises.unlink(filePath);
 
-        console.log(
-          "Recording file deleted:",
-          filePath
+        logger.info(
+          "Recording file deleted",
+          {
+            recordingId: deletedRecording.id,
+            filePath,
+          }
         );
       } catch (fileError) {
-        console.error(
-          "Failed to delete recording file:",
-          fileError.message
+        logger.error(
+          "Failed to delete recording file",
+          {
+            recordingId: deletedRecording.id,
+            error: fileError.message,
+          }
         );
       }
     }
 
     res.json({
       success: true,
-      message: "Recording and audio file deleted successfully",
+      message:
+        "Recording and audio file deleted successfully",
       data: deletedRecording,
     });
   } catch (error) {
-    console.error(
-      "Failed to delete recording:",
-      error
-    );
+    logger.error("Failed to delete recording", {
+      error: error.message,
+      recordingId: req.params.id,
+      userId: req.user.id,
+    });
 
     res.status(500).json({
       success: false,
@@ -196,6 +233,8 @@ async function deleteRecording(req, res) {
 }
 
 async function uploadRecording(req, res) {
+  let uploadedFilePath = null;
+
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -204,14 +243,31 @@ async function uploadRecording(req, res) {
       });
     }
 
-    const {
-      name,
-      duration,
-    } = req.body;
+    uploadedFilePath = req.file.path;
+
+    const { name, duration } = req.body;
+
+    const recordingName =
+      name?.trim() || req.file.originalname;
+
+    const recordingDuration =
+      Number(duration) || 0;
+
+    if (recordingDuration < 0) {
+      await fs.promises.unlink(
+        uploadedFilePath
+      );
+
+      return res.status(400).json({
+        success: false,
+        message: "Recording duration cannot be negative",
+      });
+    }
 
     const result = await pool.query(
       `
       INSERT INTO recordings (
+        user_id,
         name,
         duration,
         file_name,
@@ -219,12 +275,13 @@ async function uploadRecording(req, res) {
         mime_type,
         file_size
       )
-      VALUES ($1, $2, $3, $4, $5, $6)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
       `,
       [
-        name || req.file.originalname,
-        duration || 0,
+        req.user.id,
+        recordingName,
+        recordingDuration,
         req.file.originalname,
         req.file.path,
         req.file.mimetype,
@@ -233,10 +290,11 @@ async function uploadRecording(req, res) {
     );
 
     logger.info("Recording uploaded", {
-  recordingId: result.rows[0].id,
-  name: result.rows[0].name,
-  fileSize: result.rows[0].file_size,
-});
+      recordingId: result.rows[0].id,
+      userId: req.user.id,
+      name: result.rows[0].name,
+      fileSize: result.rows[0].file_size,
+    });
 
     res.status(201).json({
       success: true,
@@ -244,7 +302,27 @@ async function uploadRecording(req, res) {
       data: result.rows[0],
     });
   } catch (error) {
-    console.error("Failed to upload recording:", error);
+    logger.error("Failed to upload recording", {
+      error: error.message,
+      userId: req.user.id,
+    });
+
+    // Clean up uploaded file if database insertion fails
+    if (uploadedFilePath) {
+      try {
+        await fs.promises.unlink(
+          uploadedFilePath
+        );
+      } catch (cleanupError) {
+        logger.error(
+          "Failed to clean up uploaded file",
+          {
+            error: cleanupError.message,
+            filePath: uploadedFilePath,
+          }
+        );
+      }
+    }
 
     res.status(500).json({
       success: false,
@@ -252,8 +330,6 @@ async function uploadRecording(req, res) {
     });
   }
 }
-
-//const path = require("path");
 
 async function getRecordingFile(req, res) {
   try {
@@ -267,8 +343,9 @@ async function getRecordingFile(req, res) {
         mime_type
       FROM recordings
       WHERE id = $1
+        AND user_id = $2
       `,
-      [id]
+      [id, req.user.id]
     );
 
     if (result.rows.length === 0) {
@@ -287,11 +364,20 @@ async function getRecordingFile(req, res) {
       });
     }
 
-    const filePath = path.resolve(recording.file_path);
+    const filePath = path.resolve(
+      recording.file_path
+    );
 
     res.sendFile(filePath, (error) => {
       if (error) {
-        console.error("Failed to send recording file:", error);
+        logger.error(
+          "Failed to send recording file",
+          {
+            error: error.message,
+            recordingId: id,
+            userId: req.user.id,
+          }
+        );
 
         if (!res.headersSent) {
           res.status(404).json({
@@ -302,7 +388,14 @@ async function getRecordingFile(req, res) {
       }
     });
   } catch (error) {
-    console.error("Failed to fetch recording file:", error);
+    logger.error(
+      "Failed to fetch recording file",
+      {
+        error: error.message,
+        recordingId: req.params.id,
+        userId: req.user.id,
+      }
+    );
 
     res.status(500).json({
       success: false,
@@ -318,5 +411,4 @@ module.exports = {
   deleteRecording,
   uploadRecording,
   getRecordingFile,
-
 };

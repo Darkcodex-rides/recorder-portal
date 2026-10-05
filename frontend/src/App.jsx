@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import MainLayout from "./components/layout/MainLayout";
 import Login from "./pages/Login/Login";
@@ -9,8 +10,18 @@ import Observability from "./pages/Observability/Observability";
 import { useAuth } from "./context/AuthContext";
 
 function App() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isInitializing } = useAuth();
 
+  // Wait until authentication state is restored
+  if (isInitializing) {
+    return (
+      <div className="app-loading">
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  // Not authenticated → Login
   if (!isAuthenticated) {
     return <Login />;
   }
@@ -20,10 +31,21 @@ function App() {
       <Routes>
         <Route element={<MainLayout />}>
           <Route path="/" element={<Dashboard />} />
-          <Route path="/recordings" element={<Recordings />} />
+
+          <Route
+            path="/recordings"
+            element={<Recordings />}
+          />
+
           <Route
             path="/observability"
             element={<Observability />}
+          />
+
+          {/* Unknown route → Dashboard */}
+          <Route
+            path="*"
+            element={<Navigate to="/" replace />}
           />
         </Route>
       </Routes>

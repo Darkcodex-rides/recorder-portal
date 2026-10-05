@@ -20,15 +20,23 @@ const logFile = path.join(
 function writeLog(level, message, data = null) {
   const timestamp = new Date().toISOString();
 
-  let logMessage = `[${timestamp}] [${level}] ${message}`;
+  let logMessage =
+    `[${timestamp}] [${level}] ${message}`;
 
-  if (data) {
+  if (data !== null && data !== undefined) {
     logMessage += ` ${JSON.stringify(data)}`;
   }
 
   logMessage += "\n";
 
-  fs.appendFileSync(logFile, logMessage);
+  try {
+    fs.appendFileSync(logFile, logMessage);
+  } catch (error) {
+    console.error(
+      "Failed to write log file:",
+      error.message
+    );
+  }
 
   console.log(logMessage.trim());
 }

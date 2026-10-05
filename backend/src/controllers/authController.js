@@ -1,25 +1,36 @@
+
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 const pool = require("../config/database");
 
-const JWT_SECRET = process.env.JWT_SECRET ;
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // REGISTER
 async function register(req, res) {
   try {
     const { name, email, password } = req.body;
 
-    if (!name || !email || !password) {
+    const normalizedName = name?.trim();
+    const normalizedEmail = email?.trim().toLowerCase();
+
+    if (!normalizedName || !normalizedEmail || !password) {
       return res.status(400).json({
         success: false,
         message: "Name, email and password are required",
       });
     }
 
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 6 characters",
+      });
+    }
+
     const existingUser = await pool.query(
       "SELECT id FROM users WHERE email = $1",
-      [email]
+      [normalizedEmail]
     );
 
     if (existingUser.rows.length > 0) {
@@ -29,13 +40,24 @@ async function register(req, res) {
       });
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(
+      password,
+      10
+    );
 
     const result = await pool.query(
-      `INSERT INTO users (name, email, password_hash)
-       VALUES ($1, $2, $3)
-       RETURNING id, name, email, created_at`,
-      [name, email, passwordHash]
+      `INSERT INTO users (
+        name,
+        email,
+        password_hash
+      )
+      VALUES ($1, $2, $3)
+      RETURNING id, name, email, created_at`,
+      [
+        normalizedName,
+        normalizedEmail,
+        passwordHash,
+      ]
     );
 
     res.status(201).json({
@@ -44,7 +66,10 @@ async function register(req, res) {
       data: result.rows[0],
     });
   } catch (error) {
-    console.error("Registration error:", error);
+    console.error(
+      "Registration error:",
+      error
+    );
 
     res.status(500).json({
       success: false,
@@ -58,16 +83,36 @@ async function login(req, res) {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
+    const normalizedEmail =
+      email?.trim().toLowerCase();
+
+    if (!normalizedEmail || !password) {
       return res.status(400).json({
         success: false,
         message: "Email and password are required",
       });
     }
 
+    if (!JWT_SECRET) {
+      console.error(
+        "JWT_SECRET is not configured"
+      );
+
+      return res.status(500).json({
+        success: false,
+        message: "Authentication configuration error",
+      });
+    }
+
     const result = await pool.query(
-      "SELECT * FROM users WHERE email = $1",
-      [email]
+      `SELECT
+        id,
+        name,
+        email,
+        password_hash
+       FROM users
+       WHERE email = $1`,
+      [normalizedEmail]
     );
 
     if (result.rows.length === 0) {
@@ -79,10 +124,11 @@ async function login(req, res) {
 
     const user = result.rows[0];
 
-    const passwordMatch = await bcrypt.compare(
-      password,
-      user.password_hash
-    );
+    const passwordMatch =
+      await bcrypt.compare(
+        password,
+        user.password_hash
+      );
 
     if (!passwordMatch) {
       return res.status(401).json({
@@ -113,7 +159,10 @@ async function login(req, res) {
       },
     });
   } catch (error) {
-    console.error("Login error:", error);
+    console.error(
+      "Login error:",
+      error
+    );
 
     res.status(500).json({
       success: false,
@@ -126,3 +175,5 @@ module.exports = {
   register,
   login,
 };
+
+

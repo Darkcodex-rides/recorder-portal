@@ -1,3 +1,4 @@
+
 const API_BASE_URL = "http://localhost:5000/api";
 
 async function authenticatedFetch(url, options = {}) {
@@ -14,13 +15,19 @@ async function authenticatedFetch(url, options = {}) {
   console.log("Authenticated request:", {
     url,
     hasToken: !!token,
-    headers,
   });
 
-  return fetch(url, {
+  const response = await fetch(url, {
     ...options,
     headers,
   });
+
+  // Automatically notify AuthContext when JWT is invalid/expired
+  if (response.status === 401) {
+    window.dispatchEvent(new Event("auth:expired"));
+  }
+
+  return response;
 }
 
 export async function uploadRecording(blob, name, duration) {

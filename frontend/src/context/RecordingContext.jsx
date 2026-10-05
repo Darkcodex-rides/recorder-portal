@@ -1,3 +1,4 @@
+
 import {
   createContext,
   useContext,
@@ -10,22 +11,31 @@ import {
   deleteRecording,
 } from "../services/api";
 
+import { useAuth } from "./AuthContext";
+
 const RecordingContext = createContext(null);
 
 export function RecordingProvider({ children }) {
+  const { token, isInitializing } = useAuth();
+
   const [recordings, setRecordings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const loadRecordings = async () => {
-      const token = localStorage.getItem("token");
+    // Wait until AuthContext finishes restoring authentication
+    if (isInitializing) {
+      return;
+    }
 
-      // Don't call protected API if user is not logged in
-      if (!token) {
-        setRecordings([]);
-        setIsLoading(false);
-        return;
-      }
+    // User is logged out
+    if (!token) {
+      setRecordings([]);
+      setIsLoading(false);
+      return;
+    }
+
+    const loadRecordings = async () => {
+      setIsLoading(true);
 
       try {
         console.log("Loading recordings from backend...");
@@ -48,9 +58,9 @@ export function RecordingProvider({ children }) {
     };
 
     loadRecordings();
-  }, []);
+  }, [token, isInitializing]);
 
-  const addRecording = async (recording) => {
+  const addRecording = (recording) => {
     setRecordings((previousRecordings) => [
       recording,
       ...previousRecordings,
