@@ -18,7 +18,7 @@ function RecordingTimer({ isRecording, duration, setDuration,durationRef }) {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isRecording, setDuration]);
+  }, [isRecording, setDuration,durationRef]);
 
   const hours = Math.floor(duration / 3600);
   const minutes = Math.floor((duration % 3600) / 60);

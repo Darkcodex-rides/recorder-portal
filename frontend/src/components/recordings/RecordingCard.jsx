@@ -1,4 +1,10 @@
-import { Download, Trash2 } from "lucide-react";
+import {
+  Clock3,
+  Download,
+  FileAudio,
+  Trash2,
+} from "lucide-react";
+
 import AudioPlayer from "./AudioPlayer";
 import { useRecordingContext } from "../../context/RecordingContext";
 
@@ -17,37 +23,59 @@ function RecordingCard({ recording }) {
   };
 
   return (
-    <div className="recording-card">
-      <div className="recording-card-header">
-        <div>
-          <h3>{recording.name}</h3>
-
-          <p>
-            Duration: {recording.duration}s
-          </p>
+    <article className="recording-card">
+      <div className="recording-card-main">
+        <div className="recording-file-icon">
+          <FileAudio size={21} />
         </div>
 
-        <div className="recording-actions">
+        <div className="recording-card-info">
+          <div className="recording-card-title-row">
+            <h3>{recording.name}</h3>
+
+            <span className="recording-format-badge">
+              WEBM
+            </span>
+          </div>
+
+          <div className="recording-card-meta">
+            <span>
+              <Clock3 size={13} />
+              {recording.duration}s
+            </span>
+
+            <span>
+              <span className="meta-status-dot" />
+              SAVED
+            </span>
+          </div>
+        </div>
+
+        <div className="recording-card-actions">
           <button
-            className="action-button"
+            className="recording-action-button"
             onClick={downloadRecording}
-            title="Download"
+            title="Download recording"
+            type="button"
           >
-            <Download size={18} />
+            <Download size={17} />
           </button>
 
           <button
-            className="action-button delete-button"
+            className="recording-action-button recording-delete-button"
             onClick={() => deleteRecording(recording.id)}
-            title="Delete"
+            title="Delete recording"
+            type="button"
           >
-            <Trash2 size={18} />
+            <Trash2 size={17} />
           </button>
         </div>
       </div>
 
-      <AudioPlayer recording={recording} />
-    </div>
+      <div className="recording-card-player">
+        <AudioPlayer recording={recording} />
+      </div>
+    </article>
   );
 }
 

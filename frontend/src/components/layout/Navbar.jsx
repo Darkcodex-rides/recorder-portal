@@ -1,8 +1,8 @@
-
 import {
   Bell,
-  UserCircle,
+  CircleUserRound,
   LogOut,
+  Mic2,
 } from "lucide-react";
 
 import { useAuth } from "../../context/AuthContext";
@@ -16,15 +16,26 @@ function Navbar() {
 
   return (
     <header className="navbar">
-      <div>
-        <h2>Design Recorder</h2>
+      <div className="navbar-left">
+        <div className="mobile-brand-icon">
+          <Mic2 size={17} />
+        </div>
+
+        <div className="navbar-title">
+          <span>DESIGN RECORDER</span>
+          <small>CONTROL ROOM</small>
+        </div>
       </div>
 
       <div className="navbar-actions">
         {user && (
-          <span className="navbar-user">
-            {user.name}
-          </span>
+          <div className="navbar-user">
+            <span className="navbar-user-status" />
+
+            <span>
+              {user.name}
+            </span>
+          </div>
         )}
 
         <button
@@ -32,15 +43,17 @@ function Navbar() {
           title="Notifications"
           type="button"
         >
-          <Bell size={20} />
+          <Bell size={18} />
+
+          <span className="notification-dot" />
         </button>
 
         <button
-          className="icon-button"
+          className="icon-button profile-button"
           title="Profile"
           type="button"
         >
-          <UserCircle size={24} />
+          <CircleUserRound size={21} />
         </button>
 
         <button
@@ -49,7 +62,8 @@ function Navbar() {
           title="Logout"
           type="button"
         >
-          <LogOut size={20} />
+          <LogOut size={18} />
+
           <span>Logout</span>
         </button>
       </div>
