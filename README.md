@@ -5,6 +5,11 @@ A full-stack audio recording and management application built with **React, Node
 The application allows authenticated users to record audio from the browser, upload and persist recordings, play them back, delete recordings, and monitor backend activity through an integrated observability dashboard.
 
 ---
+## Demo Video
+
+Watch the complete Design Recorder application demo:
+
+[▶️ Watch the Design Recorder Demo on Loom](https://www.loom.com/share/8ee5034b232d4014934f1c5a8d38892e)
 
 ## Features
 
