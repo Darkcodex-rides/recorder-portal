@@ -1,8 +1,8 @@
 import RecordingCard from "./RecordingCard";
 import { useRecordingContext } from "../../context/RecordingContext";
 
-function RecordingList() {
-  const { recordings, isLoading } = useRecordingContext();
+function RecordingList({ recordings }) {
+  const { isLoading } = useRecordingContext();
 
   if (isLoading) {
     return (
@@ -15,8 +15,12 @@ function RecordingList() {
   if (recordings.length === 0) {
     return (
       <div className="empty-recordings">
-        <p>No recordings yet.</p>
-        <p>Start a recording from the Dashboard to see it here.</p>
+        <p>No recordings found.</p>
+
+        <p>
+          Try a different search or start a new recording
+          from the Dashboard.
+        </p>
       </div>
     );
   }

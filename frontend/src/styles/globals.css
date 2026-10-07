@@ -6179,3 +6179,85 @@ body {
     transform: scale(1);
   }
 }
+
+/* ================================
+   RECORDINGS SEARCH
+================================ */
+
+.recordings-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  width: 100%;
+  margin-bottom: 18px;
+  padding: 0 13px;
+
+  min-height: 44px;
+
+  border: 1px solid #1d2735;
+  border-radius: 11px;
+
+  background: rgba(10, 14, 21, 0.72);
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.recordings-search:focus-within {
+  border-color: rgba(99, 102, 241, 0.65);
+
+  box-shadow:
+    0 0 0 3px rgba(99, 102, 241, 0.08),
+    0 0 24px rgba(99, 102, 241, 0.08);
+}
+
+.recordings-search > svg {
+  flex-shrink: 0;
+  color: #68758a;
+}
+
+.recordings-search input {
+  flex: 1;
+
+  width: 100%;
+  border: none;
+  outline: none;
+
+  background: transparent;
+
+  color: #dbe4f0;
+
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.recordings-search input::placeholder {
+  color: #566377;
+}
+
+.recordings-search input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.recordings-search button {
+  border: none;
+  background: transparent;
+
+  color: #718096;
+
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+
+  cursor: pointer;
+
+  transition: color 0.2s ease;
+}
+
+.recordings-search button:hover {
+  color: #a5b4fc;
+}
