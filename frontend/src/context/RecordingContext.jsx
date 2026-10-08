@@ -9,6 +9,7 @@ import {
 import {
   getRecordings as getBackendRecordings,
   deleteRecording,
+  renameRecording,
 } from "../services/api";
 
 import { useAuth } from "./AuthContext";
@@ -91,14 +92,46 @@ export function RecordingProvider({ children }) {
     }
   };
 
+  const handleRenameRecording = async (id, name) => {
+  try {
+    const response = await renameRecording(id, name);
+
+    setRecordings((previousRecordings) =>
+      previousRecordings.map((recording) =>
+        recording.id === id
+          ? {
+              ...recording,
+              name: response.data.name,
+            }
+          : recording
+      )
+    );
+
+    console.log(
+      "Recording renamed successfully:",
+      id
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error(
+      "Failed to rename recording:",
+      error
+    );
+
+    throw error;
+  }
+};
+
   return (
     <RecordingContext.Provider
       value={{
-        recordings,
-        addRecording,
-        deleteRecording: handleDeleteRecording,
-        isLoading,
-      }}
+  recordings,
+  addRecording,
+  deleteRecording: handleDeleteRecording,
+  renameRecording: handleRenameRecording,
+  isLoading,
+}}
     >
       {children}
     </RecordingContext.Provider>

@@ -232,6 +232,84 @@ async function deleteRecording(req, res) {
   }
 }
 
+
+async function renameRecording(req, res) {
+  try {
+    const { id } = req.params;
+    const normalizedName = req.body.name?.trim();
+
+    if (!normalizedName) {
+      return res.status(400).json({
+        success: false,
+        message: "Recording name is required",
+      });
+    }
+
+    if (normalizedName.length > 255) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Recording name cannot exceed 255 characters",
+      });
+    }
+
+    const result = await pool.query(
+      `
+      UPDATE recordings
+      SET name = $1
+      WHERE id = $2
+        AND user_id = $3
+      RETURNING
+        id,
+        name,
+        duration,
+        file_name,
+        mime_type,
+        file_size,
+        created_at
+      `,
+      [
+        normalizedName,
+        id,
+        req.user.id,
+      ]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Recording not found",
+      });
+    }
+
+    const renamedRecording = result.rows[0];
+
+    logger.info("Recording renamed", {
+      recordingId: renamedRecording.id,
+      userId: req.user.id,
+      name: renamedRecording.name,
+    });
+
+    return res.json({
+      success: true,
+      message: "Recording renamed successfully",
+      data: renamedRecording,
+    });
+  } catch (error) {
+    logger.error("Failed to rename recording", {
+      error: error.message,
+      recordingId: req.params.id,
+      userId: req.user.id,
+    });
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to rename recording",
+    });
+  }
+}
+
+
 async function uploadRecording(req, res) {
   let uploadedFilePath = null;
 
@@ -409,6 +487,7 @@ module.exports = {
   createRecording,
   getRecordingById,
   deleteRecording,
+  renameRecording,
   uploadRecording,
   getRecordingFile,
 };

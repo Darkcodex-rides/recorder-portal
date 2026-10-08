@@ -78,3 +78,24 @@ export async function deleteRecording(id) {
 
   return response.json();
 }
+
+export async function renameRecording(id, name) {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/recordings/${id}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to rename recording");
+  }
+
+  return response.json();
+}
