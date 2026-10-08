@@ -6423,3 +6423,76 @@ body {
     min-width: 0;
   }
 }
+
+
+/*--------------------*/
+
+.recordings-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 24px;
+  padding: 18px 0 8px;
+}
+
+.recordings-pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.recordings-pagination button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid #1d2735;
+  border-radius: 8px;
+  background: rgba(10, 14, 21, 0.8);
+  color: #94a3b8;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.recordings-pagination button:hover:not(:disabled) {
+  border-color: rgba(99, 102, 241, 0.5);
+  background: rgba(99, 102, 241, 0.08);
+  color: #c7d2fe;
+}
+
+.recordings-pagination button.active {
+  border-color: rgba(99, 102, 241, 0.65);
+  background: rgba(99, 102, 241, 0.16);
+  color: #c7d2fe;
+}
+
+.recordings-pagination button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .recordings-pagination {
+    gap: 6px;
+  }
+
+  .recordings-pagination-pages {
+    gap: 4px;
+    overflow-x: auto;
+  }
+
+  .recordings-pagination button {
+    min-width: 32px;
+    height: 32px;
+    padding: 0 8px;
+  }
+}

@@ -11,10 +11,12 @@ import {
   Search,
 } from "lucide-react";
 
-import { useMemo, useState } from "react";
+import { useEffect,useMemo, useState } from "react";
 
 import RecordingList from "../../components/recordings/RecordingList";
 import { useRecordingContext } from "../../context/RecordingContext";
+
+
 
 function Recordings() {
   const { recordings } = useRecordingContext();
@@ -22,6 +24,9 @@ function Recordings() {
   const [searchQuery, setSearchQuery] = useState("");
   const [durationFilter, setDurationFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const RECORDINGS_PER_PAGE = 6;
 
   const filteredRecordings = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -84,6 +89,25 @@ function Recordings() {
     sortBy,
   ]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, durationFilter, sortBy]);
+
+  const totalPages = Math.ceil(
+    filteredRecordings.length / RECORDINGS_PER_PAGE
+  );
+
+  const paginatedRecordings = useMemo(() => {
+    const startIndex =
+      (currentPage - 1) * RECORDINGS_PER_PAGE;
+
+    return filteredRecordings.slice(
+      startIndex,
+      startIndex + RECORDINGS_PER_PAGE
+    );
+  }, [filteredRecordings, currentPage]);
+
+  
   return (
     <div className="recordings-page">
       <div className="recordings-page-header">
@@ -211,15 +235,56 @@ function Recordings() {
         <div className="recordings-toolbar-status">
           <span />
 
-          {searchQuery ||
-          durationFilter !== "all" ||
-          sortBy !== "newest"
-            ? `${filteredRecordings.length} RESULTS`
-            : "LIBRARY READY"}
+          {filteredRecordings.length > 0
+  ? `${filteredRecordings.length} RESULTS`
+  : "NO RESULTS"}
         </div>
       </div>
 
-      <RecordingList recordings={filteredRecordings} />
+      <RecordingList recordings={paginatedRecordings} />
+      {totalPages > 1 && (
+  <div className="recordings-pagination">
+    <button
+      type="button"
+      onClick={() =>
+        setCurrentPage((page) => page - 1)
+      }
+      disabled={currentPage === 1}
+    >
+      Previous
+    </button>
+
+    <div className="recordings-pagination-pages">
+      {Array.from(
+        { length: totalPages },
+        (_, index) => index + 1
+      ).map((page) => (
+        <button
+          key={page}
+          type="button"
+          className={
+            currentPage === page
+              ? "active"
+              : ""
+          }
+          onClick={() => setCurrentPage(page)}
+        >
+          {page}
+        </button>
+      ))}
+    </div>
+
+    <button
+      type="button"
+      onClick={() =>
+        setCurrentPage((page) => page + 1)
+      }
+      disabled={currentPage === totalPages}
+    >
+      Next
+    </button>
+  </div>
+)}
     </div>
   );
 }
