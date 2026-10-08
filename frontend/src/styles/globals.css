@@ -6261,3 +6261,93 @@ body {
 .recordings-search button:hover {
   color: #a5b4fc;
 }
+
+
+/* ================================
+   RECORDINGS FILTER + SORT
+================================ */
+
+.recordings-library-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  width: 100%;
+  margin-bottom: 18px;
+}
+
+.recordings-control {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+
+  min-height: 40px;
+  padding: 0 11px;
+
+  border: 1px solid #1d2735;
+  border-radius: 10px;
+
+  background: rgba(10, 14, 21, 0.72);
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.recordings-control:focus-within {
+  border-color: rgba(99, 102, 241, 0.55);
+
+  box-shadow:
+    0 0 0 3px rgba(99, 102, 241, 0.07),
+    0 0 20px rgba(99, 102, 241, 0.06);
+}
+
+.recordings-control > svg {
+  flex-shrink: 0;
+  color: #68758a;
+}
+
+.recordings-control label {
+  color: #566377;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.recordings-control select {
+  min-width: 145px;
+
+  border: none;
+  outline: none;
+
+  background: transparent;
+  color: #cbd5e1;
+
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.recordings-control select option {
+  background: #0b1017;
+  color: #cbd5e1;
+}
+
+@media (max-width: 640px) {
+  .recordings-library-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .recordings-control {
+    width: 100%;
+  }
+
+  .recordings-control select {
+    flex: 1;
+    min-width: 0;
+  }
+}

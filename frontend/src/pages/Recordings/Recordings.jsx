@@ -1,4 +1,10 @@
+
 import {
+  ArrowDownAZ,
+  ArrowDownUp,
+  ArrowUpAZ,
+  Clock3,
+  Filter,
   Library,
   ListMusic,
   Mic2,
@@ -14,18 +20,69 @@ function Recordings() {
   const { recordings } = useRecordingContext();
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [durationFilter, setDurationFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("newest");
 
   const filteredRecordings = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
 
-    if (!query) {
-      return recordings;
-    }
+    let result = recordings.filter((recording) => {
+      const matchesSearch =
+        !query ||
+        recording.name.toLowerCase().includes(query);
 
-    return recordings.filter((recording) =>
-      recording.name.toLowerCase().includes(query)
-    );
-  }, [recordings, searchQuery]);
+      const duration = Number(recording.duration) || 0;
+
+      const matchesDuration =
+        durationFilter === "all" ||
+        (durationFilter === "short" && duration <= 60) ||
+        (durationFilter === "long" && duration > 60);
+
+      return matchesSearch && matchesDuration;
+    });
+
+    result = [...result].sort((a, b) => {
+      switch (sortBy) {
+        case "oldest":
+          return (
+            new Date(a.created_at) -
+            new Date(b.created_at)
+          );
+
+        case "name-asc":
+          return a.name.localeCompare(b.name);
+
+        case "name-desc":
+          return b.name.localeCompare(a.name);
+
+        case "duration-asc":
+          return (
+            (Number(a.duration) || 0) -
+            (Number(b.duration) || 0)
+          );
+
+        case "duration-desc":
+          return (
+            (Number(b.duration) || 0) -
+            (Number(a.duration) || 0)
+          );
+
+        case "newest":
+        default:
+          return (
+            new Date(b.created_at) -
+            new Date(a.created_at)
+          );
+      }
+    });
+
+    return result;
+  }, [
+    recordings,
+    searchQuery,
+    durationFilter,
+    sortBy,
+  ]);
 
   return (
     <div className="recordings-page">
@@ -80,6 +137,71 @@ function Recordings() {
         )}
       </div>
 
+      <div className="recordings-library-controls">
+        <div className="recordings-control">
+          <Filter size={15} />
+
+          <label htmlFor="duration-filter">
+            FILTER
+          </label>
+
+          <select
+            id="duration-filter"
+            value={durationFilter}
+            onChange={(event) =>
+              setDurationFilter(event.target.value)
+            }
+          >
+            <option value="all">All recordings</option>
+            <option value="short">
+              Short · 60s or less
+            </option>
+            <option value="long">
+              Long · Over 60s
+            </option>
+          </select>
+        </div>
+
+        <div className="recordings-control">
+          {sortBy === "name-asc" ||
+          sortBy === "name-desc" ? (
+            sortBy === "name-asc" ? (
+              <ArrowDownAZ size={15} />
+            ) : (
+              <ArrowUpAZ size={15} />
+            )
+          ) : sortBy === "duration-asc" ||
+            sortBy === "duration-desc" ? (
+            <Clock3 size={15} />
+          ) : (
+            <ArrowDownUp size={15} />
+          )}
+
+          <label htmlFor="recordings-sort">
+            SORT
+          </label>
+
+          <select
+            id="recordings-sort"
+            value={sortBy}
+            onChange={(event) =>
+              setSortBy(event.target.value)
+            }
+          >
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="name-asc">Name A → Z</option>
+            <option value="name-desc">Name Z → A</option>
+            <option value="duration-asc">
+              Duration shortest
+            </option>
+            <option value="duration-desc">
+              Duration longest
+            </option>
+          </select>
+        </div>
+      </div>
+
       <div className="recordings-toolbar">
         <div className="recordings-toolbar-left">
           <Mic2 size={16} />
@@ -88,8 +210,11 @@ function Recordings() {
 
         <div className="recordings-toolbar-status">
           <span />
-          {searchQuery
-            ? `${filteredRecordings.length} MATCHES`
+
+          {searchQuery ||
+          durationFilter !== "all" ||
+          sortBy !== "newest"
+            ? `${filteredRecordings.length} RESULTS`
             : "LIBRARY READY"}
         </div>
       </div>
