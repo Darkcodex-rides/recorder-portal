@@ -6,6 +6,7 @@ import Login from "./pages/Login/Login";
 import Dashboard from "./pages/Dashboard/Dashboard";
 import Recordings from "./pages/Recordings/Recordings";
 import Observability from "./pages/Observability/Observability";
+import Trash from "./pages/Trash/Trash";
 
 import { useAuth } from "./context/AuthContext";
 
@@ -36,6 +37,8 @@ function App() {
             path="/recordings"
             element={<Recordings />}
           />
+
+          <Route path="/trash" element={<Trash />} />
 
           <Route
             path="/observability"

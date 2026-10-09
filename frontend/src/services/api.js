@@ -99,3 +99,31 @@ export async function renameRecording(id, name) {
 
   return response.json();
 }
+
+
+export async function getTrashedRecordings() {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/recordings/trash`
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch trashed recordings");
+  }
+
+  return response.json();
+}
+
+export async function restoreRecording(id) {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/recordings/${id}/restore`,
+    {
+      method: "PATCH",
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to restore recording");
+  }
+
+  return response.json();
+}

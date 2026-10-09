@@ -17,7 +17,8 @@ async function getRecordings(req, res) {
         created_at
       FROM recordings
       WHERE user_id = $1
-      ORDER BY created_at DESC
+  AND deleted_at IS NULL
+ORDER BY created_at DESC
       `,
       [req.user.id]
     );
@@ -128,6 +129,7 @@ async function getRecordingById(req, res) {
       FROM recordings
       WHERE id = $1
         AND user_id = $2
+        AND deleted_at IS NULL
       `,
       [id, req.user.id]
     );
@@ -163,10 +165,20 @@ async function deleteRecording(req, res) {
 
     const result = await pool.query(
       `
-      DELETE FROM recordings
+      UPDATE recordings
+      SET deleted_at = CURRENT_TIMESTAMP
       WHERE id = $1
         AND user_id = $2
-      RETURNING *
+        AND deleted_at IS NULL
+      RETURNING
+        id,
+        name,
+        duration,
+        file_name,
+        mime_type,
+        file_size,
+        created_at,
+        deleted_at
       `,
       [id, req.user.id]
     );
@@ -180,57 +192,128 @@ async function deleteRecording(req, res) {
 
     const deletedRecording = result.rows[0];
 
-    logger.info("Recording deleted", {
+    logger.info("Recording moved to trash", {
       recordingId: deletedRecording.id,
       userId: req.user.id,
       name: deletedRecording.name,
     });
 
-    if (deletedRecording.file_path) {
-      const filePath = path.resolve(
-        deletedRecording.file_path
-      );
-
-      try {
-        await fs.promises.unlink(filePath);
-
-        logger.info(
-          "Recording file deleted",
-          {
-            recordingId: deletedRecording.id,
-            filePath,
-          }
-        );
-      } catch (fileError) {
-        logger.error(
-          "Failed to delete recording file",
-          {
-            recordingId: deletedRecording.id,
-            error: fileError.message,
-          }
-        );
-      }
-    }
-
-    res.json({
+    return res.json({
       success: true,
-      message:
-        "Recording and audio file deleted successfully",
+      message: "Recording moved to trash",
       data: deletedRecording,
     });
   } catch (error) {
-    logger.error("Failed to delete recording", {
+    logger.error("Failed to move recording to trash", {
       error: error.message,
       recordingId: req.params.id,
       userId: req.user.id,
     });
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: "Failed to delete recording",
+      message: "Failed to move recording to trash",
     });
   }
 }
+
+
+async function getTrashedRecordings(req, res) {
+  try {
+    const result = await pool.query(
+      `
+      SELECT
+        id,
+        name,
+        duration,
+        file_name,
+        mime_type,
+        file_size,
+        created_at,
+        deleted_at
+      FROM recordings
+      WHERE user_id = $1
+        AND deleted_at IS NOT NULL
+      ORDER BY deleted_at DESC
+      `,
+      [req.user.id]
+    );
+
+    return res.json({
+      success: true,
+      data: result.rows,
+    });
+  } catch (error) {
+    logger.error("Failed to fetch trashed recordings", {
+      error: error.message,
+      userId: req.user.id,
+    });
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch trashed recordings",
+    });
+  }
+}
+
+async function restoreRecording(req, res) {
+  try {
+    const { id } = req.params;
+
+    const result = await pool.query(
+      `
+      UPDATE recordings
+      SET deleted_at = NULL
+      WHERE id = $1
+        AND user_id = $2
+        AND deleted_at IS NOT NULL
+      RETURNING
+        id,
+        name,
+        duration,
+        file_name,
+        mime_type,
+        file_size,
+        created_at,
+        deleted_at
+      `,
+      [id, req.user.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Trashed recording not found",
+      });
+    }
+
+    const restoredRecording = result.rows[0];
+
+    logger.info("Recording restored from trash", {
+      recordingId: restoredRecording.id,
+      userId: req.user.id,
+      name: restoredRecording.name,
+    });
+
+    return res.json({
+      success: true,
+      message: "Recording restored successfully",
+      data: restoredRecording,
+    });
+  } catch (error) {
+    logger.error("Failed to restore recording", {
+      error: error.message,
+      recordingId: req.params.id,
+      userId: req.user.id,
+    });
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to restore recording",
+    });
+  }
+}
+
 
 
 async function renameRecording(req, res) {
@@ -487,6 +570,8 @@ module.exports = {
   createRecording,
   getRecordingById,
   deleteRecording,
+  getTrashedRecordings,
+  restoreRecording,
   renameRecording,
   uploadRecording,
   getRecordingFile,

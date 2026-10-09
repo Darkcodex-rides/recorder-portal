@@ -5,6 +5,8 @@ const {
   createRecording,
   getRecordingById,
   deleteRecording,
+  getTrashedRecordings,
+  restoreRecording,
   renameRecording,
   uploadRecording,
   getRecordingFile,
@@ -23,6 +25,13 @@ router.post(
   upload.single("audio"),
   uploadRecording
 );
+
+router.get(
+  "/trash",
+  authenticateToken,
+  getTrashedRecordings
+); 
+
 router.get("/:id/file", authenticateToken, getRecordingFile);
 router.get("/:id", authenticateToken, getRecordingById);
 
@@ -32,6 +41,18 @@ router.patch(
   renameRecording
 );
 
+
+router.patch(
+  "/:id/restore",
+  authenticateToken,
+  restoreRecording
+);
+
+
+
 router.delete("/:id", authenticateToken, deleteRecording);
+
+
+
 
 module.exports = router;

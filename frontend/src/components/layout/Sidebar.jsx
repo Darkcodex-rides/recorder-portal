@@ -4,6 +4,7 @@ import {
   ListVideo,
   Mic,
   Radio,
+  Trash2,
 } from "lucide-react";
 
 import { NavLink } from "react-router-dom";
@@ -63,6 +64,22 @@ function Sidebar() {
             <small>Audio library</small>
           </span>
         </NavLink>
+
+        <NavLink
+  to="/trash"
+  className={({ isActive }) =>
+    `sidebar-link ${isActive ? "active" : ""}`
+  }
+>
+  <span className="sidebar-link-icon">
+    <Trash2 size={18} />
+  </span>
+
+  <span className="sidebar-link-content">
+    <strong>Trash</strong>
+    <small>Deleted recordings</small>
+  </span>
+</NavLink>
 
         <NavLink
           to="/observability"
