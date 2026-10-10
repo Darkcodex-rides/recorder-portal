@@ -14,6 +14,79 @@ import AudioPlayer from "./AudioPlayer";
 import { useRecordingContext } from "../../context/RecordingContext";
 
 
+function formatDuration(seconds) {
+  const totalSeconds = Math.max(0, Number(seconds) || 0);
+  const minutes = Math.floor(totalSeconds / 60);
+  const remainingSeconds = Math.floor(totalSeconds % 60);
+
+  return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
+}
+
+function formatFileSize(bytes) {
+  const size = Number(bytes);
+
+  if (!Number.isFinite(size) || size <= 0) {
+    return "Size unavailable";
+  }
+
+  if (size < 1024 * 1024) {
+    return `${(size / 1024).toFixed(1)} KB`;
+  }
+
+  return `${(size / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+
+function getAudioFormat(recording) {
+  const mimeType = (
+    recording.mime_type ||
+    recording.mimeType ||
+    ""
+  ).toLowerCase();
+
+  if (mimeType.includes("/")) {
+    const subtype = mimeType.split("/")[1].split(";")[0];
+
+    if (subtype === "mpeg") return "MP3";
+    if (subtype === "x-wav" || subtype === "wav") return "WAV";
+    if (subtype === "mp4") return "MP4";
+
+    return subtype.toUpperCase();
+  }
+
+  const fileName = (
+    recording.file_name ||
+    recording.fileName ||
+    ""
+  ).toLowerCase();
+
+  const extension = fileName.split(".").pop();
+
+  return extension && extension !== fileName
+    ? extension.toUpperCase()
+    : "AUDIO";
+}
+
+
+function formatCreatedDate(dateValue) {
+  if (!dateValue) {
+    return "Date unavailable";
+  }
+
+  const date = new Date(dateValue);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Date unavailable";
+  }
+
+  return date.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+
 function RecordingCard({ recording }) {
   const {
   deleteRecording,
@@ -137,21 +210,32 @@ const saveRename = async () => {
   )}
 
   <span className="recording-format-badge">
-    WEBM
-  </span>
+  {getAudioFormat(recording)}
+</span>
 </div>
 
           <div className="recording-card-meta">
-            <span>
-              <Clock3 size={13} />
-              {recording.duration}s
-            </span>
+  <span title="Recording duration">
+    <Clock3 size={13} />
+    {formatDuration(recording.duration)}
+  </span>
 
-            <span>
-              <span className="meta-status-dot" />
-              SAVED
-            </span>
-          </div>
+  <span title="Audio file size">
+    <FileAudio size={13} />
+    {formatFileSize(recording.file_size ?? recording.fileSize)}
+  </span>
+
+  <span title="Date created">
+    {formatCreatedDate(
+      recording.created_at ?? recording.createdAt
+    )}
+  </span>
+
+  <span>
+    <span className="meta-status-dot" />
+    SAVED
+  </span>
+</div>
         </div>
 
         <div className="recording-card-actions">
