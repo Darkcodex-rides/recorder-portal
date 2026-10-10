@@ -15,6 +15,7 @@ import {
   getTrashedRecordings,
   restoreRecording,
   convertRecording,
+  trimRecording,
 } from "../services/api";
 
 
@@ -157,6 +158,30 @@ const handleConvertRecording = async (id, format) => {
 };
 
 
+const handleTrimRecording = async (id, startTime, endTime) => {
+  try {
+    const response = await trimRecording(id, startTime, endTime);
+    const trimmedRecording = response.data;
+
+    setRecordings((previousRecordings) => [
+      trimmedRecording,
+      ...previousRecordings,
+    ]);
+
+    console.log(
+      "Recording trimmed successfully:",
+      trimmedRecording.id
+    );
+
+    return trimmedRecording;
+  } catch (error) {
+    console.error("Failed to trim recording:", error);
+    throw error;
+  }
+};
+
+
+
 const loadTrashedRecordings = useCallback(async () => {
   setIsTrashLoading(true);
 
@@ -213,6 +238,7 @@ loadTrashedRecordings,
 restoreRecording: handleRestoreRecording,
   isLoading,
   convertRecording: handleConvertRecording,
+  trimRecording: handleTrimRecording,
 }}
     >
       {children}

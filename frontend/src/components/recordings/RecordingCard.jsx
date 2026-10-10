@@ -5,6 +5,7 @@ import {
   Edit3,
   FileAudio,
   RefreshCw,
+  Scissors,
   Trash2,
   X,
 } from "lucide-react";
@@ -93,6 +94,7 @@ function RecordingCard({ recording }) {
   deleteRecording,
   renameRecording,
   convertRecording,
+  trimRecording,
 } = useRecordingContext();
 
 const [isRenaming, setIsRenaming] = useState(false);
@@ -102,6 +104,12 @@ const [renameValue, setRenameValue] = useState(
 const [isSavingName, setIsSavingName] = useState(false);
 const [convertingFormat, setConvertingFormat] = useState("");
 const [conversionError, setConversionError] = useState("");
+
+const [showTrimControls, setShowTrimControls] = useState(false);
+const [trimStart, setTrimStart] = useState("0");
+const [trimEnd, setTrimEnd] = useState("");
+const [isTrimming, setIsTrimming] = useState(false);
+const [trimError, setTrimError] = useState("");
 
 const startRename = () => {
   setRenameValue(recording.name);
@@ -159,6 +167,45 @@ const handleConvert = async (format) => {
     );
   } finally {
     setConvertingFormat("");
+  }
+};
+
+const handleTrim = async () => {
+  const start = Number(trimStart);
+  const end = Number(trimEnd);
+  const duration = Number(recording.duration);
+
+  if (
+    !Number.isFinite(start) ||
+    !Number.isFinite(end) ||
+    start < 0 ||
+    end <= start
+  ) {
+    setTrimError("Enter a valid start and end time.");
+    return;
+  }
+
+  if (end > duration) {
+    setTrimError(
+      `End time cannot exceed ${duration} seconds.`
+    );
+    return;
+  }
+
+  try {
+    setIsTrimming(true);
+    setTrimError("");
+
+    await trimRecording(recording.id, start, end);
+
+    setShowTrimControls(false);
+    setTrimStart("0");
+    setTrimEnd("");
+  } catch (error) {
+    console.error("Audio trimming failed:", error);
+    setTrimError(error.message || "Failed to trim audio.");
+  } finally {
+    setIsTrimming(false);
   }
 };
 
@@ -302,6 +349,19 @@ const handleConvert = async (format) => {
   )}
 </button>
 
+<button
+  className="recording-action-button"
+  onClick={() => {
+    setShowTrimControls((previous) => !previous);
+    setTrimError("");
+  }}
+  title="Trim recording"
+  type="button"
+  disabled={isTrimming}
+>
+  <Scissors size={17} />
+</button>
+
           <button
             className="recording-action-button"
             onClick={downloadRecording}
@@ -322,9 +382,73 @@ const handleConvert = async (format) => {
         </div>
       </div>
 
-      <div className="recording-card-player">
-        <AudioPlayer recording={recording} />
-      </div>
+      
+{showTrimControls && (
+  <div className="recording-trim-controls">
+    <h4>Trim Audio</h4>
+    <p>Enter the start and end times in seconds.</p>
+
+    <div className="recording-trim-fields">
+      <label>
+        Start (seconds)
+        <input
+          type="number"
+          min="0"
+          step="0.1"
+          value={trimStart}
+          onChange={(event) => setTrimStart(event.target.value)}
+          disabled={isTrimming}
+        />
+      </label>
+
+      <label>
+        End (seconds)
+        <input
+          type="number"
+          min="0"
+          step="0.1"
+          max={recording.duration}
+          value={trimEnd}
+          onChange={(event) => setTrimEnd(event.target.value)}
+          disabled={isTrimming}
+          placeholder={`Max ${recording.duration}`}
+        />
+      </label>
+    </div>
+
+    {trimError && (
+      <p className="recording-trim-error" role="alert">
+        {trimError}
+      </p>
+    )}
+
+    <div className="recording-trim-actions">
+      <button
+        type="button"
+        onClick={handleTrim}
+        disabled={isTrimming}
+      >
+        {isTrimming ? "Trimming..." : "Create Trimmed Copy"}
+      </button>
+
+      <button
+        type="button"
+        onClick={() => {
+          setShowTrimControls(false);
+          setTrimError("");
+        }}
+        disabled={isTrimming}
+      >
+        Cancel
+      </button>
+    </div>
+  </div>
+)}
+
+<div className="recording-card-player">
+  <AudioPlayer recording={recording} />
+</div>
+
     </article>
   );
 }

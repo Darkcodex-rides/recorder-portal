@@ -6496,3 +6496,73 @@ body {
     padding: 0 8px;
   }
 }
+
+/*--------------------*/
+
+.recording-trim-controls {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid var(--border-color, #2d3748);
+  border-radius: 12px;
+}
+
+.recording-trim-controls h4 {
+  margin: 0 0 6px;
+}
+
+.recording-trim-controls > p {
+  margin: 0 0 14px;
+  font-size: 13px;
+  opacity: 0.75;
+}
+
+.recording-trim-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.recording-trim-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 140px;
+  font-size: 13px;
+}
+
+.recording-trim-fields input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px;
+  border: 1px solid var(--border-color, #2d3748);
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+}
+
+.recording-trim-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.recording-trim-actions button {
+  padding: 9px 12px;
+  border: 1px solid var(--border-color, #2d3748);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.recording-trim-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.recording-trim-error {
+  margin-top: 10px !important;
+  color: #ef4444;
+  opacity: 1 !important;
+  font-size: 13px;
+}

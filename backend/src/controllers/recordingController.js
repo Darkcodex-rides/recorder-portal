@@ -617,6 +617,168 @@ async function convertRecording(req, res) {
 }
 
 
+async function trimRecording(req, res) {
+  let outputPath = null;
+
+  try {
+    const { id } = req.params;
+    const startTime = Number(req.body.startTime);
+    const endTime = Number(req.body.endTime);
+
+    if (
+      !Number.isFinite(startTime) ||
+      !Number.isFinite(endTime) ||
+      startTime < 0 ||
+      endTime <= startTime
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Provide a valid start and end time.",
+      });
+    }
+
+    const result = await pool.query(
+      `SELECT id, name, duration, file_path, file_name
+       FROM recordings
+       WHERE id = $1
+         AND user_id = $2
+         AND deleted_at IS NULL`,
+      [id, req.user.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Recording not found",
+      });
+    }
+
+    const source = result.rows[0];
+
+    if (!source.file_path || !fs.existsSync(source.file_path)) {
+      return res.status(404).json({
+        success: false,
+        message: "Source audio file not found",
+      });
+    }
+
+    const sourceDuration = Number(source.duration);
+
+    if (
+      !Number.isFinite(sourceDuration) ||
+      sourceDuration <= 0 ||
+      endTime > sourceDuration
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "End time must not exceed the recording duration.",
+      });
+    }
+
+    const recordingsDir = path.resolve(
+      __dirname,
+      "../../recordings"
+    );
+
+    await fs.promises.mkdir(recordingsDir, {
+      recursive: true,
+    });
+
+    const outputName =
+      `${Date.now()}-${require("crypto").randomUUID()}-trimmed.wav`;
+
+    outputPath = path.join(recordingsDir, outputName);
+
+    const segmentDuration = endTime - startTime;
+
+    await new Promise((resolve, reject) => {
+      const args = [
+        "-nostdin",
+        "-y",
+        "-ss",
+        String(startTime),
+        "-i",
+        source.file_path,
+        "-t",
+        String(segmentDuration),
+        "-vn",
+        "-codec:a",
+        "pcm_s16le",
+        "-ar",
+        "44100",
+        outputPath,
+      ];
+
+      execFile(
+        "ffmpeg",
+        args,
+        { timeout: 120000 },
+        (error) => {
+          if (error) reject(error);
+          else resolve();
+        }
+      );
+    });
+
+    const stats = await fs.promises.stat(outputPath);
+
+    const inserted = await pool.query(
+      `INSERT INTO recordings
+       (user_id, name, duration, file_name, file_path, mime_type, file_size)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id, name, duration, file_name, mime_type, file_size, created_at`,
+      [
+        req.user.id,
+        `${source.name} (Trimmed)`,
+        Math.round(segmentDuration),
+        outputName,
+        outputPath,
+        "audio/wav",
+        stats.size,
+      ]
+    );
+
+    logger.info("Recording trimmed", {
+      sourceRecordingId: source.id,
+      trimmedRecordingId: inserted.rows[0].id,
+      startTime,
+      endTime,
+      userId: req.user.id,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Recording trimmed successfully",
+      data: inserted.rows[0],
+    });
+  } catch (error) {
+    if (outputPath) {
+      try {
+        await fs.promises.unlink(outputPath);
+      } catch (cleanupError) {
+        if (cleanupError.code !== "ENOENT") {
+          logger.error("Failed to clean up trimmed audio", {
+            error: cleanupError.message,
+          });
+        }
+      }
+    }
+
+    logger.error("Failed to trim recording", {
+      error: error.message,
+      recordingId: req.params.id,
+      userId: req.user?.id,
+    });
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to trim recording",
+    });
+  }
+}
+
+
+
 async function getRecordingFile(req, res) {
   try {
     const { id } = req.params;
@@ -701,4 +863,5 @@ module.exports = {
   uploadRecording,
   getRecordingFile,
   convertRecording,
+  trimRecording,
 };

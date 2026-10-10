@@ -151,3 +151,30 @@ export async function convertRecording(id, format) {
 
   return result;
 }
+
+
+export async function trimRecording(id, startTime, endTime) {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/recordings/${id}/trim`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        startTime: Number(startTime),
+        endTime: Number(endTime),
+      }),
+    }
+  );
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      result.message || "Failed to trim recording"
+    );
+  }
+
+  return result;
+}
