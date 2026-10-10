@@ -22,6 +22,7 @@ function AudioRecorder() {
 
   const [isRecording, setIsRecording] = useState(false);
   const [duration, setDuration] = useState(0);
+  const [audioStream, setAudioStream] = useState(null);
 
   const durationRef = useRef(0);
 
@@ -34,6 +35,7 @@ function AudioRecorder() {
         await navigator.mediaDevices.getUserMedia({
           audio: true,
         });
+        setAudioStream(stream);
 
       const mediaRecorder =
         new MediaRecorder(stream);
@@ -93,11 +95,8 @@ function AudioRecorder() {
           );
         }
 
-        stream
-          .getTracks()
-          .forEach((track) =>
-            track.stop()
-          );
+        stream.getTracks().forEach((track) => track.stop());
+        setAudioStream(null);
 
         console.log("Recording saved");
       };
@@ -209,7 +208,8 @@ function AudioRecorder() {
           </div>
 
           <Waveform
-            isRecording={isRecording}
+               isRecording={isRecording}
+               audioStream={audioStream}
           />
 
           <div className="visualizer-scale">
