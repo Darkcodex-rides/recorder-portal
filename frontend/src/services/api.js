@@ -127,3 +127,27 @@ export async function restoreRecording(id) {
 
   return response.json();
 }
+
+
+export async function convertRecording(id, format) {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/recordings/${id}/convert`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ format }),
+    }
+  );
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      result.message || "Failed to convert recording"
+    );
+  }
+
+  return result;
+}

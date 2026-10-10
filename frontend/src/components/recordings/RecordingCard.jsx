@@ -4,6 +4,7 @@ import {
   Download,
   Edit3,
   FileAudio,
+  RefreshCw,
   Trash2,
   X,
 } from "lucide-react";
@@ -91,6 +92,7 @@ function RecordingCard({ recording }) {
   const {
   deleteRecording,
   renameRecording,
+  convertRecording,
 } = useRecordingContext();
 
 const [isRenaming, setIsRenaming] = useState(false);
@@ -98,6 +100,8 @@ const [renameValue, setRenameValue] = useState(
   recording.name
 );
 const [isSavingName, setIsSavingName] = useState(false);
+const [convertingFormat, setConvertingFormat] = useState("");
+const [conversionError, setConversionError] = useState("");
 
 const startRename = () => {
   setRenameValue(recording.name);
@@ -142,6 +146,22 @@ const saveRename = async () => {
   }
 };
 
+const handleConvert = async (format) => {
+  try {
+    setConvertingFormat(format);
+    setConversionError("");
+
+    await convertRecording(recording.id, format);
+  } catch (error) {
+    console.error("Audio conversion failed:", error);
+    setConversionError(
+      error.message || "Failed to convert audio."
+    );
+  } finally {
+    setConvertingFormat("");
+  }
+};
+
   const downloadRecording = () => {
     const link = document.createElement("a");
 
@@ -156,6 +176,11 @@ const saveRename = async () => {
   return (
     <article className="recording-card">
       <div className="recording-card-main">
+        {conversionError && (
+  <p className="recording-conversion-error" role="alert">
+    {conversionError}
+  </p>
+)}
         <div className="recording-file-icon">
           <FileAudio size={21} />
         </div>
@@ -247,6 +272,34 @@ const saveRename = async () => {
   disabled={isRenaming}
 >
   <Edit3 size={17} />
+</button>
+
+<button
+  className="recording-action-button"
+  onClick={() => handleConvert("wav")}
+  title="Convert to WAV"
+  type="button"
+  disabled={Boolean(convertingFormat)}
+>
+  {convertingFormat === "wav" ? (
+    <RefreshCw size={17} />
+  ) : (
+    <span>WAV</span>
+  )}
+</button>
+
+<button
+  className="recording-action-button"
+  onClick={() => handleConvert("mp3")}
+  title="Convert to MP3"
+  type="button"
+  disabled={Boolean(convertingFormat)}
+>
+  {convertingFormat === "mp3" ? (
+    <RefreshCw size={17} />
+  ) : (
+    <span>MP3</span>
+  )}
 </button>
 
           <button

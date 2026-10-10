@@ -7,13 +7,16 @@ import {
   useState,
 } from "react";
 
+
 import {
   getRecordings as getBackendRecordings,
   deleteRecording,
   renameRecording,
   getTrashedRecordings,
   restoreRecording,
+  convertRecording,
 } from "../services/api";
+
 
 import { useAuth } from "./AuthContext";
 
@@ -130,6 +133,30 @@ const [isTrashLoading, setIsTrashLoading] = useState(false);
   }
 };
 
+
+const handleConvertRecording = async (id, format) => {
+  try {
+    const response = await convertRecording(id, format);
+    const convertedRecording = response.data;
+
+    setRecordings((previousRecordings) => [
+      convertedRecording,
+      ...previousRecordings,
+    ]);
+
+    console.log(
+      `Recording converted to ${format.toUpperCase()}:`,
+      convertedRecording.id
+    );
+
+    return convertedRecording;
+  } catch (error) {
+    console.error("Failed to convert recording:", error);
+    throw error;
+  }
+};
+
+
 const loadTrashedRecordings = useCallback(async () => {
   setIsTrashLoading(true);
 
@@ -185,6 +212,7 @@ isTrashLoading,
 loadTrashedRecordings,
 restoreRecording: handleRestoreRecording,
   isLoading,
+  convertRecording: handleConvertRecording,
 }}
     >
       {children}

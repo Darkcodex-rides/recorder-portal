@@ -3,6 +3,9 @@ const fs = require("fs");
 const path = require("path");
 const logger = require("../utils/logger");
 
+const { execFile } = require("child_process");
+
+
 async function getRecordings(req, res) {
   try {
     const result = await pool.query(
@@ -492,6 +495,128 @@ async function uploadRecording(req, res) {
   }
 }
 
+
+async function convertRecording(req, res) {
+  let outputPath = null;
+
+  try {
+    const { id } = req.params;
+    const format = String(req.body.format || "").toLowerCase();
+
+    if (!["wav", "mp3"].includes(format)) {
+      return res.status(400).json({
+        success: false,
+        message: "Format must be wav or mp3",
+      });
+    }
+
+    const result = await pool.query(
+      `SELECT id, name, duration, file_path, file_name
+       FROM recordings
+       WHERE id = $1
+         AND user_id = $2
+         AND deleted_at IS NULL`,
+      [id, req.user.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Recording not found",
+      });
+    }
+
+    const source = result.rows[0];
+
+    if (!source.file_path || !fs.existsSync(source.file_path)) {
+      return res.status(404).json({
+        success: false,
+        message: "Source audio file not found",
+      });
+    }
+
+    const recordingsDir = path.resolve(__dirname, "../../recordings");
+    await fs.promises.mkdir(recordingsDir, { recursive: true });
+
+    const outputName =
+      `${Date.now()}-${require("crypto").randomUUID()}.${format}`;
+
+    outputPath = path.join(recordingsDir, outputName);
+
+    await new Promise((resolve, reject) => {
+      const args = ["-nostdin", "-y", "-i", source.file_path];
+
+      if (format === "mp3") {
+        args.push("-vn", "-codec:a", "libmp3lame", "-q:a", "2");
+      } else {
+        args.push("-vn", "-codec:a", "pcm_s16le", "-ar", "44100");
+      }
+
+      args.push(outputPath);
+
+      execFile("ffmpeg", args, { timeout: 120000 }, (error) => {
+        if (error) reject(error);
+        else resolve();
+      });
+    });
+
+    const stats = await fs.promises.stat(outputPath);
+
+    const inserted = await pool.query(
+      `INSERT INTO recordings
+       (user_id, name, duration, file_name, file_path, mime_type, file_size)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id, name, duration, file_name, mime_type, file_size, created_at`,
+      [
+        req.user.id,
+        `${source.name} (${format.toUpperCase()})`,
+        source.duration,
+        outputName,
+        outputPath,
+        format === "mp3" ? "audio/mpeg" : "audio/wav",
+        stats.size,
+      ]
+    );
+
+    logger.info("Recording converted", {
+      sourceRecordingId: source.id,
+      convertedRecordingId: inserted.rows[0].id,
+      format,
+      userId: req.user.id,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: `Recording converted to ${format.toUpperCase()}`,
+      data: inserted.rows[0],
+    });
+  } catch (error) {
+    if (outputPath) {
+      try {
+        await fs.promises.unlink(outputPath);
+      } catch (cleanupError) {
+        if (cleanupError.code !== "ENOENT") {
+          logger.error("Failed to clean up converted audio", {
+            error: cleanupError.message,
+          });
+        }
+      }
+    }
+
+    logger.error("Failed to convert recording", {
+      error: error.message,
+      recordingId: req.params.id,
+      userId: req.user.id,
+    });
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to convert recording. Check that FFmpeg is available and the source file is valid.",
+    });
+  }
+}
+
+
 async function getRecordingFile(req, res) {
   try {
     const { id } = req.params;
@@ -575,4 +700,5 @@ module.exports = {
   renameRecording,
   uploadRecording,
   getRecordingFile,
+  convertRecording,
 };
