@@ -778,11 +778,13 @@ async function trimRecording(req, res) {
 }
 
 
+
 async function transcribeRecording(req, res) {
   const { id } = req.params;
+  const userId = req.user.id;
 
   try {
-    const result = await pool.query(
+    const recordingResult = await pool.query(
       `
       SELECT id, name, file_path
       FROM recordings
@@ -790,17 +792,48 @@ async function transcribeRecording(req, res) {
         AND user_id = $2
         AND deleted_at IS NULL
       `,
-      [id, req.user.id]
+      [id, userId]
     );
 
-    if (result.rows.length === 0) {
+    if (recordingResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
         message: "Recording not found",
       });
     }
 
-    const recording = result.rows[0];
+    const recording = recordingResult.rows[0];
+
+    // Return the saved transcript without running Whisper again.
+    const savedResult = await pool.query(
+      `
+      SELECT
+        id,
+        language,
+        language_probability,
+        transcript_text,
+        segments
+      FROM recording_transcripts
+      WHERE recording_id = $1
+      `,
+      [recording.id]
+    );
+
+    if (savedResult.rows.length > 0) {
+      const saved = savedResult.rows[0];
+
+      return res.json({
+        success: true,
+        data: {
+          recordingId: recording.id,
+          recordingName: recording.name,
+          language: saved.language,
+          languageProbability: saved.language_probability,
+          text: saved.transcript_text,
+          segments: saved.segments,
+        },
+      });
+    }
 
     if (
       !recording.file_path ||
@@ -829,11 +862,6 @@ async function transcribeRecording(req, res) {
       !fs.existsSync(pythonPath) ||
       !fs.existsSync(workerPath)
     ) {
-      logger.error("Whisper configuration files not found", {
-        recordingId: id,
-        userId: req.user.id,
-      });
-
       return res.status(500).json({
         success: false,
         message: "Transcription service is not configured",
@@ -842,7 +870,7 @@ async function transcribeRecording(req, res) {
 
     logger.info("Starting audio transcription", {
       recordingId: id,
-      userId: req.user.id,
+      userId,
     });
 
     execFile(
@@ -853,17 +881,15 @@ async function transcribeRecording(req, res) {
         maxBuffer: 10 * 1024 * 1024,
         windowsHide: true,
       },
-      (error, stdout, stderr) => {
+      async (error, stdout) => {
         if (error) {
           logger.error("Audio transcription failed", {
             error: error.message,
             recordingId: id,
-            userId: req.user.id,
+            userId,
           });
 
-          return res.status(
-            error.killed ? 504 : 500
-          ).json({
+          return res.status(error.killed ? 504 : 500).json({
             success: false,
             message: error.killed
               ? "Transcription timed out"
@@ -881,9 +907,37 @@ async function transcribeRecording(req, res) {
             throw new Error("Invalid transcription response");
           }
 
-          logger.info("Audio transcription completed", {
+          // Save the transcript and its timestamped segments.
+          await pool.query(
+            `
+            INSERT INTO recording_transcripts (
+              recording_id,
+              language,
+              language_probability,
+              transcript_text,
+              segments
+            )
+            VALUES ($1, $2, $3, $4, $5::jsonb)
+            ON CONFLICT (recording_id)
+            DO UPDATE SET
+              language = EXCLUDED.language,
+              language_probability = EXCLUDED.language_probability,
+              transcript_text = EXCLUDED.transcript_text,
+              segments = EXCLUDED.segments,
+              updated_at = NOW()
+            `,
+            [
+              recording.id,
+              transcript.language ?? null,
+              transcript.languageProbability ?? null,
+              transcript.text,
+              JSON.stringify(transcript.segments),
+            ]
+          );
+
+          logger.info("Audio transcription saved", {
             recordingId: id,
-            userId: req.user.id,
+            userId,
           });
 
           return res.json({
@@ -898,16 +952,16 @@ async function transcribeRecording(req, res) {
               segments: transcript.segments,
             },
           });
-        } catch (parseError) {
-          logger.error("Invalid Whisper response", {
-            error: parseError.message,
+        } catch (saveError) {
+          logger.error("Failed to process or save transcript", {
+            error: saveError.message,
             recordingId: id,
-            userId: req.user.id,
+            userId,
           });
 
           return res.status(500).json({
             success: false,
-            message: "Invalid transcription response",
+            message: "Failed to save transcription",
           });
         }
       }
@@ -916,12 +970,81 @@ async function transcribeRecording(req, res) {
     logger.error("Failed to start transcription", {
       error: error.message,
       recordingId: id,
-      userId: req.user?.id,
+      userId,
     });
 
     return res.status(500).json({
       success: false,
       message: "Failed to transcribe recording",
+    });
+  }
+}
+
+async function getRecordingTranscript(req, res) {
+  const { id } = req.params;
+  const userId = req.user.id;
+
+  try {
+    const result = await pool.query(
+      `
+      SELECT
+        r.id AS recording_id,
+        r.name AS recording_name,
+        t.language,
+        t.language_probability,
+        t.transcript_text,
+        t.segments,
+        t.created_at,
+        t.updated_at
+      FROM recordings r
+      LEFT JOIN recording_transcripts t
+        ON t.recording_id = r.id
+      WHERE r.id = $1
+        AND r.user_id = $2
+        AND r.deleted_at IS NULL
+      `,
+      [id, userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Recording not found",
+      });
+    }
+
+    const row = result.rows[0];
+
+    if (row.transcript_text === null) {
+      return res.status(404).json({
+        success: false,
+        message: "Transcript has not been generated yet",
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        recordingId: row.recording_id,
+        recordingName: row.recording_name,
+        language: row.language,
+        languageProbability: row.language_probability,
+        text: row.transcript_text,
+        segments: row.segments,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      },
+    });
+  } catch (error) {
+    logger.error("Failed to retrieve transcript", {
+      error: error.message,
+      recordingId: id,
+      userId,
+    });
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to retrieve transcript",
     });
   }
 }
@@ -1013,4 +1136,5 @@ module.exports = {
   convertRecording,
   trimRecording,
   transcribeRecording,
+  getRecordingTranscript,
 };
