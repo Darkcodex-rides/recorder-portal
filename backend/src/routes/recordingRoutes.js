@@ -12,6 +12,7 @@ const {
   getRecordingFile,
   convertRecording,
   trimRecording,
+  transcribeRecording,
 } = require("../controllers/recordingController");
 
 const upload = require("../middleware/upload");
@@ -43,6 +44,12 @@ router.post(
   "/:id/trim",
   authenticateToken,
   trimRecording
+);
+
+router.post(
+  "/:id/transcribe",
+  authenticateToken,
+  transcribeRecording
 );
 
 router.get("/:id/file", authenticateToken, getRecordingFile);

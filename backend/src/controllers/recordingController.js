@@ -778,6 +778,154 @@ async function trimRecording(req, res) {
 }
 
 
+async function transcribeRecording(req, res) {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query(
+      `
+      SELECT id, name, file_path
+      FROM recordings
+      WHERE id = $1
+        AND user_id = $2
+        AND deleted_at IS NULL
+      `,
+      [id, req.user.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Recording not found",
+      });
+    }
+
+    const recording = result.rows[0];
+
+    if (
+      !recording.file_path ||
+      !fs.existsSync(recording.file_path)
+    ) {
+      return res.status(404).json({
+        success: false,
+        message: "Recording audio file not found",
+      });
+    }
+
+    const backendDir = path.resolve(__dirname, "../..");
+    const pythonPath = path.join(
+      backendDir,
+      "whisper-venv",
+      "Scripts",
+      "python.exe"
+    );
+    const workerPath = path.join(
+      backendDir,
+      "python",
+      "transcribe.py"
+    );
+
+    if (
+      !fs.existsSync(pythonPath) ||
+      !fs.existsSync(workerPath)
+    ) {
+      logger.error("Whisper configuration files not found", {
+        recordingId: id,
+        userId: req.user.id,
+      });
+
+      return res.status(500).json({
+        success: false,
+        message: "Transcription service is not configured",
+      });
+    }
+
+    logger.info("Starting audio transcription", {
+      recordingId: id,
+      userId: req.user.id,
+    });
+
+    execFile(
+      pythonPath,
+      [workerPath, recording.file_path],
+      {
+        timeout: 600000,
+        maxBuffer: 10 * 1024 * 1024,
+        windowsHide: true,
+      },
+      (error, stdout, stderr) => {
+        if (error) {
+          logger.error("Audio transcription failed", {
+            error: error.message,
+            recordingId: id,
+            userId: req.user.id,
+          });
+
+          return res.status(
+            error.killed ? 504 : 500
+          ).json({
+            success: false,
+            message: error.killed
+              ? "Transcription timed out"
+              : "Failed to transcribe recording",
+          });
+        }
+
+        try {
+          const transcript = JSON.parse(stdout);
+
+          if (
+            typeof transcript.text !== "string" ||
+            !Array.isArray(transcript.segments)
+          ) {
+            throw new Error("Invalid transcription response");
+          }
+
+          logger.info("Audio transcription completed", {
+            recordingId: id,
+            userId: req.user.id,
+          });
+
+          return res.json({
+            success: true,
+            data: {
+              recordingId: recording.id,
+              recordingName: recording.name,
+              language: transcript.language,
+              languageProbability:
+                transcript.languageProbability,
+              text: transcript.text,
+              segments: transcript.segments,
+            },
+          });
+        } catch (parseError) {
+          logger.error("Invalid Whisper response", {
+            error: parseError.message,
+            recordingId: id,
+            userId: req.user.id,
+          });
+
+          return res.status(500).json({
+            success: false,
+            message: "Invalid transcription response",
+          });
+        }
+      }
+    );
+  } catch (error) {
+    logger.error("Failed to start transcription", {
+      error: error.message,
+      recordingId: id,
+      userId: req.user?.id,
+    });
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to transcribe recording",
+    });
+  }
+}
+
 
 async function getRecordingFile(req, res) {
   try {
@@ -864,4 +1012,5 @@ module.exports = {
   getRecordingFile,
   convertRecording,
   trimRecording,
+  transcribeRecording,
 };
