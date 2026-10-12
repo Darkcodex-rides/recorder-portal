@@ -178,3 +178,40 @@ export async function trimRecording(id, startTime, endTime) {
 
   return result;
 }
+
+
+
+export async function transcribeRecording(id) {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/recordings/${id}/transcribe`,
+    {
+      method: "POST",
+    }
+  );
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      result.message || "Failed to transcribe recording"
+    );
+  }
+
+  return result;
+}
+
+export async function getRecordingTranscript(id) {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/recordings/${id}/transcript`
+  );
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      result.message || "Failed to fetch transcript"
+    );
+  }
+
+  return result;
+}
