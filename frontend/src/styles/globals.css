@@ -6654,3 +6654,124 @@ body {
     height: 34px;
   }
 }
+
+
+/*---------------------------*/
+
+.recording-transcript-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.recording-transcript-button,
+.recording-transcript-load-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.recording-transcript-button {
+  background: var(--primary-color, #4f46e5);
+  color: white;
+}
+
+.recording-transcript-load-button {
+  background: transparent;
+  color: inherit;
+}
+
+.recording-transcript-button:disabled,
+.recording-transcript-load-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.recording-transcript-panel {
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 10px;
+  overflow-wrap: anywhere;
+}
+
+.recording-transcript-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.recording-transcript-header h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.recording-transcript-language {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+}
+
+.recording-transcript-confidence {
+  margin: 10px 0;
+  font-size: 0.85rem;
+  opacity: 0.75;
+}
+
+.recording-transcript-text {
+  margin-top: 12px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.recording-transcript-error {
+  margin-top: 10px;
+  color: #dc2626;
+}
+
+.recording-transcript-segments {
+  margin-top: 16px;
+}
+
+.recording-transcript-segments summary {
+  cursor: pointer;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.recording-transcript-segment {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border-color, #d1d5db);
+}
+
+.recording-transcript-segment span {
+  font-size: 0.85rem;
+  opacity: 0.75;
+}
+
+.recording-transcript-segment p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+@media (max-width: 520px) {
+  .recording-transcript-segment {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}

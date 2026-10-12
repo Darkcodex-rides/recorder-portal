@@ -4,6 +4,8 @@ import {
   Download,
   Edit3,
   FileAudio,
+  FileText,
+  Languages,
   RefreshCw,
   Scissors,
   Trash2,
@@ -14,6 +16,10 @@ import { useState } from "react";
 
 import AudioPlayer from "./AudioPlayer";
 import { useRecordingContext } from "../../context/RecordingContext";
+import {
+  getRecordingTranscript,
+  transcribeRecording,
+} from "../../services/api";
 
 
 function formatDuration(seconds) {
@@ -111,6 +117,12 @@ const [trimEnd, setTrimEnd] = useState("");
 const [isTrimming, setIsTrimming] = useState(false);
 const [trimError, setTrimError] = useState("");
 
+const [transcript, setTranscript] = useState(null);
+const [isTranscribing, setIsTranscribing] = useState(false);
+const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
+const [transcriptError, setTranscriptError] = useState("");
+const [showTranscript, setShowTranscript] = useState(false);
+
 const startRename = () => {
   setRenameValue(recording.name);
   setIsRenaming(true);
@@ -206,6 +218,46 @@ const handleTrim = async () => {
     setTrimError(error.message || "Failed to trim audio.");
   } finally {
     setIsTrimming(false);
+  }
+};
+
+  const handleLoadTranscript = async () => {
+  try {
+    setIsLoadingTranscript(true);
+    setTranscriptError("");
+
+    const result = await getRecordingTranscript(recording.id);
+    const savedTranscript = result.data ?? result;
+
+    setTranscript(savedTranscript);
+    setShowTranscript(true);
+  } catch (error) {
+    console.error("Failed to load transcript:", error);
+    setTranscriptError(
+      error.message || "Failed to load saved transcript."
+    );
+  } finally {
+    setIsLoadingTranscript(false);
+  }
+};
+
+const handleTranscribe = async () => {
+  try {
+    setIsTranscribing(true);
+    setTranscriptError("");
+    setShowTranscript(true);
+
+    const result = await transcribeRecording(recording.id);
+    const generatedTranscript = result.data ?? result;
+
+    setTranscript(generatedTranscript);
+  } catch (error) {
+    console.error("Transcription failed:", error);
+    setTranscriptError(
+      error.message || "Failed to transcribe recording."
+    );
+  } finally {
+    setIsTranscribing(false);
   }
 };
 
@@ -443,6 +495,86 @@ const handleTrim = async () => {
       </button>
     </div>
   </div>
+)}
+
+<div className="recording-transcript-actions">
+  <button
+    type="button"
+    className="recording-transcript-button"
+    onClick={handleTranscribe}
+    disabled={isTranscribing || isLoadingTranscript}
+  >
+    <FileText size={16} />
+    {isTranscribing
+      ? "Transcribing audio..."
+      : "Generate Transcript"}
+  </button>
+
+  <button
+    type="button"
+    className="recording-transcript-load-button"
+    onClick={handleLoadTranscript}
+    disabled={isTranscribing || isLoadingTranscript}
+  >
+    <RefreshCw size={16} />
+    {isLoadingTranscript ? "Loading..." : "Load Saved Transcript"}
+  </button>
+</div>
+
+{transcriptError && (
+  <p className="recording-transcript-error" role="alert">
+    {transcriptError}
+  </p>
+)}
+
+{showTranscript && transcript && (
+  <section className="recording-transcript-panel">
+    <div className="recording-transcript-header">
+      <h4>
+        <FileText size={18} />
+        Transcript
+      </h4>
+
+      <span className="recording-transcript-language">
+        <Languages size={14} />
+        {(transcript.language || "Unknown").toUpperCase()}
+      </span>
+    </div>
+
+    {transcript.languageProbability != null && (
+      <p className="recording-transcript-confidence">
+        Language confidence:{" "}
+        {(Number(transcript.languageProbability) * 100).toFixed(1)}%
+      </p>
+    )}
+
+    <div className="recording-transcript-text">
+      {transcript.text || "No transcript text was returned."}
+    </div>
+
+    {Array.isArray(transcript.segments) &&
+      transcript.segments.length > 0 && (
+        <details className="recording-transcript-segments">
+          <summary>
+            View timestamped segments ({transcript.segments.length})
+          </summary>
+
+          {transcript.segments.map((segment, index) => (
+            <div
+              className="recording-transcript-segment"
+              key={`${segment.start}-${index}`}
+            >
+              <span>
+                {formatDuration(segment.start)} –{" "}
+                {formatDuration(segment.end)}
+              </span>
+
+              <p>{segment.text}</p>
+            </div>
+          ))}
+        </details>
+      )}
+  </section>
 )}
 
 <div className="recording-card-player">
