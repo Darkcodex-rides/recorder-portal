@@ -1,55 +1,107 @@
 # Design Recorder
 
-A full-stack audio recording and management application built with **React, Node.js, Express, PostgreSQL, WebSocket, Docker, Loki, Promtail, and Grafana**.
+A full-stack audio recording, processing, transcription, and AI-powered management application built with **React, Node.js, Express, PostgreSQL, WebSocket, Docker, Grafana, Loki, Promtail, Whisper, and Ollama**.
 
-The application allows authenticated users to record audio from the browser, upload and persist recordings, play them back, delete recordings, and monitor backend activity through an integrated observability dashboard.
+Design Recorder enables authenticated users to record and manage audio from the browser, process recordings into different formats, trim audio, generate timestamped transcripts, and create AI-powered summaries using locally running AI models. It also includes recording search and organization, persistent storage, and an integrated observability dashboard.
 
----
-## Demo Video
+## Demo Videos
 
-Watch the complete Design Recorder application demo:
+### Original Assignment Demo
 
-[▶️ Watch the Design Recorder Demo on Loom](https://www.loom.com/share/8ee5034b232d4014934f1c5a8d38892e)
+[▶️ Watch the Original Design Recorder Demo on Loom](https://www.loom.com/share/8ee5034b232d4014934f1c5a8d38892e)
+
+### New Features Demo
+
+[▶️ Watch the New Features Demo on Loom](https://www.loom.com/share/cff0f6c7b7994c5ab155fb10964b86fc)
 
 ## Features
 
-### Authentication
+### 1. Authentication and Security
 
-- User registration
-- User login
+- User registration and login
 - JWT-based authentication
 - Password hashing with bcrypt
-- Protected recording APIs
+- Protected recording APIs and routes
 - User-specific recording access
-- Automatic authentication expiry handling
+- Authentication expiry handling
 - Logout functionality
+- Recording ownership checks
+- File type and upload size validation
+- Environment-based database credentials and JWT secrets
 
-### Audio Recording
+### 2. Audio Recording and Playback
 
-- Browser microphone recording
-- Start / stop recording
-- Recording timer
-- Recording status
-- Audio upload
-- Audio playback
-- Recording metadata persistence
-- Recording deletion
+- Record audio directly through the browser microphone
+- Start and stop recording
+- Recording timer and status indicators
+- Upload and persist recordings
+- Play back saved recordings
+- Download recordings
+- Store recording metadata in PostgreSQL
+- Store audio files on the server
+- Support for common audio formats
 
-### Recording Management
+### 3. Recording Management
 
 - Dedicated Recordings page
-- List authenticated user's recordings
-- Recording count
-- Audio playback
-- Delete recordings
-- Persistent PostgreSQL metadata
-- Server-side audio file storage
+- Search recordings
+- Filter and sort recordings
+- Rename recordings
+- Delete recordings using soft deletion
+- Restore recordings from trash
+- View recording metadata and duration
+- User-specific recording lists
+- Persistent metadata and audio storage
 
-### Real-Time Communication
+### 4. Audio Conversion
 
-WebSocket support is implemented for recording events.
+Convert saved recordings into supported audio formats.
 
-Supported events include:
+- Convert recordings between supported formats
+- Generate WAV and MP3 audio files
+- Process audio using FFmpeg
+- Save converted output as a recording
+- Play back converted recordings
+
+### 5. Audio Trimming
+
+Trim recordings to retain only the required portion of the audio.
+
+- Specify a start and end time
+- Process the selected audio segment using FFmpeg
+- Generate a trimmed audio file
+- Save and play back the resulting recording
+
+### 6. AI-Powered Speech-to-Text Transcription
+
+Generate transcripts from saved audio recordings using **Whisper through faster-whisper**, running locally.
+
+- Transcribe audio recordings into text
+- Detect the spoken language
+- Display language detection confidence
+- Generate timestamped transcript segments
+- Store transcript results in PostgreSQL
+- Retrieve previously generated transcripts
+- Reuse saved transcripts rather than transcribing the same recording repeatedly when a cached result is available
+
+Transcription runs locally rather than relying on a paid cloud transcription API.
+
+### 7. Local AI Recording Summaries
+
+Generate summaries of recording transcripts using **Ollama and the `qwen2.5:1.5b-instruct` model**.
+
+- Generate AI-powered summaries from recording transcripts
+- Display the generated summary in the application
+- Retrieve saved summaries
+- Persist summary results for later access
+- Run the language model locally
+- Avoid dependence on a paid external AI API for summarization
+
+The summary feature builds on the transcription workflow: audio is transcribed first, and the resulting text is used to generate a concise summary.
+
+### 8. Real-Time Communication
+
+The application supports WebSocket communication for recording-related events.
 
 - `recording:start`
 - `recording:stop`
@@ -58,217 +110,186 @@ Supported events include:
 - Error handling
 - Message acknowledgements
 
-### Observability
-
-The project includes a complete local logging and monitoring pipeline:
+WebSocket endpoint:
 
 ```text
-Backend
-   │
-   ▼
-backend.log
-   │
-   ▼
-Promtail
-   │
-   ▼
-Loki
-   │
-   ▼
-Grafana
-   │
-   ▼
-React Observability Page
+ws://localhost:5000/ws
 ```
 
-The Grafana dashboard monitors:
+### 9. Observability and Logging
+
+The project includes a local logging and monitoring pipeline using Grafana, Loki, and Promtail.
+
+```text
+Node.js / Express Backend
+          |
+          v
+    Backend Logs
+          |
+          v
+       Promtail
+          |
+          v
+         Loki
+          |
+          v
+       Grafana
+          |
+          v
+ React Observability Page
+```
+
+The monitoring dashboard provides visibility into:
 
 - Backend application logs
 - Backend errors
 - Recording upload activity
 - Recording deletion activity
-- Recording events
 - WebSocket activity
-- Backend error count
+- Recording events
+- Error counts
 - Recording activity over time
-
----
 
 ## Tech Stack
 
-### Frontend
-
-- React
-- React Router
-- Vite
-- Lucide React
-- JavaScript
-- Web Audio / MediaRecorder APIs
-
-### Backend
-
-- Node.js
-- Express
-- REST APIs
-- WebSocket
-- Multer
-- JWT
-- bcrypt
-
-### Database
-
-- PostgreSQL
-
-### Observability
-
-- Grafana
-- Loki
-- Promtail
-
-### Infrastructure
-
-- Docker
-- Docker Compose
-
----
+| Category | Technologies |
+|---|---|
+| Frontend | React, React Router, Vite, JavaScript, Lucide React |
+| Audio | MediaRecorder API, browser audio APIs, FFmpeg |
+| Backend | Node.js, Express, REST APIs, WebSocket |
+| Database | PostgreSQL |
+| Authentication | JWT, bcrypt |
+| File Uploads | Multer |
+| Speech-to-Text | Python, faster-whisper, Whisper |
+| Local AI | Ollama, Qwen 2.5 1.5B Instruct |
+| Observability | Grafana, Loki, Promtail |
+| Infrastructure | Docker, Docker Compose |
+| Version Control | Git, GitHub |
 
 ## Architecture
 
 ```text
-                         ┌──────────────────────┐
-                         │      React App       │
-                         │    localhost:5173    │
-                         └──────────┬───────────┘
-                                    │
-                  ┌─────────────────┼─────────────────┐
-                  │                 │                 │
-                  ▼                 ▼                 ▼
-             REST APIs          WebSocket        Grafana
-                  │                 │                 │
-                  ▼                 ▼                 │
-          ┌─────────────────────────────────┐         │
-          │       Node.js + Express         │         │
-          │        localhost:5000            │         │
-          └───────────────┬─────────────────┘         │
-                          │                           │
-                 ┌────────┴────────┐                  │
-                 │                 │                  │
-                 ▼                 ▼                  │
-          ┌─────────────┐   ┌──────────────┐         │
-          │ PostgreSQL  │   │ Audio Files  │         │
-          │             │   │              │         │
-          │ User +      │   │ recordings/  │         │
-          │ Metadata    │   │              │         │
-          └─────────────┘   └──────────────┘         │
-                                                     │
-                          Backend Logs               │
-                               │                     │
-                               ▼                     │
-                          ┌─────────┐                │
-                          │Promtail │                │
-                          └────┬────┘                │
-                               │                     │
-                               ▼                     │
-                          ┌─────────┐                │
-                          │  Loki   │────────────────┘
-                          └─────────┘
-```
+                     React Frontend
+                    localhost:5173
+                           |
+              +------------+-------------+
+              |            |             |
+              v            v             v
+           REST APIs    WebSocket    Observability
+              |            |             |
+              v            v             v
+           Node.js + Express         Grafana
+           localhost:5000                |
+              |                          v
+       +------+------+                  Loki
+       |             |                    ^
+       v             v                    |
+   PostgreSQL    Audio Files           Promtail
+       |             |                    ^
+       |             v                    |
+       |         FFmpeg Processing    Backend Logs
+       |
+       +---- Transcripts
+       |
+       +---- AI Summaries
 
----
+ Audio Files
+      |
+      v
+ Whisper / faster-whisper
+      |
+      v
+ Transcript Text
+      |
+      v
+ Ollama / Qwen Model
+      |
+      v
+ Saved AI Summary
+```
 
 ## Project Structure
 
+The following is a high-level overview of the project structure. Individual files may differ as features evolve.
+
 ```text
 recorder-portal/
-│
 ├── backend/
 │   ├── src/
 │   │   ├── config/
-│   │   │   └── database.js
-│   │   │
 │   │   ├── controllers/
 │   │   │   ├── authController.js
-│   │   │   └── recordingController.js
-│   │   │
+│   │   │   ├── recordingController.js
+│   │   │   └── summaryController.js
 │   │   ├── middleware/
-│   │   │   ├── authMiddleware.js
-│   │   │   └── upload.js
-│   │   │
 │   │   ├── routes/
 │   │   │   ├── authRoutes.js
 │   │   │   └── recordingRoutes.js
-│   │   │
 │   │   ├── utils/
-│   │   │   └── logger.js
-│   │   │
 │   │   ├── websocket/
-│   │   │   └── recordingSocket.js
-│   │   │
 │   │   └── server.js
-│   │
+│   ├── python/
+│   │   └── transcribe.py
+│   ├── scripts/
 │   ├── recordings/
 │   ├── logs/
 │   ├── .env
 │   └── package.json
-│
 ├── frontend/
 │   ├── src/
 │   │   ├── components/
+│   │   │   └── recordings/
 │   │   ├── context/
 │   │   ├── pages/
 │   │   ├── services/
 │   │   ├── App.jsx
 │   │   └── main.jsx
-│   │
 │   ├── package.json
 │   └── vite.config.js
-│
 ├── infrastructure/
 │   ├── docker-compose.yml
 │   ├── loki/
 │   ├── promtail/
 │   └── grafana/
-│
 ├── .gitignore
 └── README.md
 ```
 
----
-
 ## Prerequisites
 
-Install the following:
+Install the following tools:
 
-- Node.js
-- npm
+- Node.js and npm
 - PostgreSQL
-- Docker Desktop
 - Git
+- Docker Desktop
+- Python 3.13 for the local transcription environment
+- FFmpeg for audio conversion and trimming
+- Ollama for local AI summarization
 
-Recommended environment:
+Recommended versions for the development environment:
 
 ```text
 Node.js 24+
 npm 11+
 PostgreSQL 18+
+Python 3.13
 Docker Desktop
 ```
 
----
+Whisper transcription and Ollama summarization require additional local model dependencies and sufficient system resources.
 
 ## Database Setup
 
-Create a PostgreSQL database:
+Create the application database in PostgreSQL:
 
 ```sql
 CREATE DATABASE design_recorder;
 ```
 
-The application uses two primary tables:
+The database stores authenticated users, recording metadata, transcription results, and AI summaries.
 
-### users
-
-Stores authenticated user information.
+The `users` table stores user information such as:
 
 ```text
 id
@@ -278,9 +299,7 @@ password_hash
 created_at
 ```
 
-### recordings
-
-Stores recording metadata.
+The `recordings` table stores metadata such as:
 
 ```text
 id
@@ -292,19 +311,16 @@ file_path
 mime_type
 file_size
 created_at
+deleted_at
 ```
 
-Recordings are associated with users through `user_id`.
+Additional database structures store transcript segments and AI-generated summaries.
 
----
+Run the database setup or migration scripts included in the project before using the transcription and summarization features. Recordings are associated with users through `user_id`.
 
 ## Environment Variables
 
-Create:
-
-```text
-backend/.env
-```
+Create a `.env` file inside the `backend` directory.
 
 Example:
 
@@ -318,9 +334,7 @@ DB_PORT=5432
 JWT_SECRET=your_secure_jwt_secret
 ```
 
-Do not commit `.env` to Git.
-
----
+Replace the example values with your local configuration. Do not commit `.env` files or real credentials to Git.
 
 ## Installation
 
@@ -333,399 +347,273 @@ cd recorder-portal
 
 ### 2. Install backend dependencies
 
-```bash
+```powershell
 cd backend
 npm install
 ```
 
 ### 3. Install frontend dependencies
 
-```bash
-cd ../frontend
+Open a terminal from the project root:
+
+```powershell
+cd frontend
 npm install
 ```
 
----
+### 4. Configure audio processing
+
+Install FFmpeg and ensure the `ffmpeg` executable is available to the backend process through the system `PATH`.
+
+Verify the installation:
+
+```powershell
+ffmpeg -version
+```
+
+### 5. Configure local transcription
+
+Install Python 3.13 and set up the transcription environment and required Python packages according to the project's transcription script and dependencies.
+
+The transcription implementation uses `faster-whisper` with the Whisper `small` model and CPU `int8` computation.
+
+The first model initialization may require downloading model files.
+
+### 6. Configure local AI summarization
+
+Install Ollama and pull the model used by the project:
+
+```powershell
+ollama pull qwen2.5:1.5b-instruct
+```
+
+Verify that the model responds:
+
+```powershell
+ollama run qwen2.5:1.5b-instruct "Reply with exactly: Local AI is working."
+```
+
+Ensure Ollama is running and accessible to the backend when using the summarization feature.
 
 ## Running the Application
 
-The project consists of three services:
+Run the infrastructure, backend, and frontend in separate terminals.
 
-```text
-Infrastructure
-Backend
-Frontend
-```
-
-### 1. Start Infrastructure
-
-Open a terminal:
+### 1. Start the observability infrastructure
 
 ```powershell
 cd infrastructure
 docker compose up -d
 ```
 
-Verify:
+Verify the containers:
 
 ```powershell
 docker ps
 ```
 
-Expected containers:
+The expected services include Loki, Promtail, and Grafana.
 
-```text
-recorder-loki
-recorder-promtail
-recorder-grafana
-```
-
-### 2. Start Backend
-
-Open another terminal:
+### 2. Start the backend
 
 ```powershell
 cd backend
 npm run dev
 ```
 
-Backend:
+Backend URL:
 
-```text
 http://localhost:5000
-```
 
 Health check:
 
-```text
 http://localhost:5000/api/health
-```
 
-### 3. Start Frontend
-
-Open another terminal:
+### 3. Start the frontend
 
 ```powershell
 cd frontend
 npm run dev
 ```
 
-Frontend:
+Frontend URL:
 
-```text
 http://localhost:5173
-```
 
----
+### 4. Start the local AI service
+
+Ensure Ollama is running and the configured Qwen model is available. The Whisper environment must also be configured for transcription.
 
 ## Application Pages
 
 ### Login
 
-Users authenticate using email and password.
+Register an account or log in to access protected application features.
 
 ### Dashboard
 
-The Dashboard contains the audio recorder.
-
-Users can:
-
-- Start recording
-- Stop recording
-- Monitor recording duration
-- Save the recording
+- Record audio using the browser microphone
+- Start and stop recordings
+- View recording duration and status
+- Save recordings
 
 ### Recordings
 
-The Recordings page contains the user's saved recordings.
-
-Users can:
-
-- View recordings
-- Play recordings
-- Delete recordings
+- Browse saved recordings
+- Play and download audio
+- Search, filter, and sort recordings
+- Rename recordings
+- Convert audio to supported formats
+- Trim audio
+- Generate and view transcripts
+- Generate and view AI summaries
+- Move recordings to trash and restore them
 
 ### Observability
 
-The Observability page embeds the Grafana monitoring dashboard.
-
-It provides visibility into:
-
-- Backend logs
-- Errors
-- Upload activity
-- Delete activity
-- WebSocket activity
-- Recording events
-
----
+View backend logs and recording activity through the integrated monitoring dashboard.
 
 ## API Endpoints
 
+The following endpoints summarize the main API operations. All recording routes require a valid JWT unless otherwise specified.
+
 ### Authentication
 
-#### Register
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | `/api/auth/register` | Register a user |
+| POST | `/api/auth/login` | Authenticate a user |
 
-```http
-POST /api/auth/register
-```
+### Recording Management
 
-Example:
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/api/recordings` | Retrieve recordings |
+| POST | `/api/recordings` | Create recording metadata |
+| POST | `/api/recordings/upload` | Upload an audio file |
+| GET | `/api/recordings/:id` | Retrieve recording details |
+| GET | `/api/recordings/:id/file` | Stream an audio file |
+| DELETE | `/api/recordings/:id` | Delete a recording |
 
-```json
-{
-  "name": "Sourabh",
-  "email": "sourabh@example.com",
-  "password": "password123"
-}
-```
+The upload endpoint accepts multipart form data using the `audio` field, with recording name and duration as additional fields.
 
-#### Login
+### Audio Processing and AI
 
-```http
-POST /api/auth/login
-```
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | `/api/recordings/:id/convert` | Convert a recording |
+| POST | `/api/recordings/:id/trim` | Trim a recording |
+| POST | `/api/recordings/:id/transcribe` | Generate a transcript |
+| GET | `/api/recordings/:id/transcript` | Retrieve a saved transcript |
+| POST | `/api/recordings/:id/summarize` | Generate an AI summary |
+| GET | `/api/recordings/:id/summary` | Retrieve a saved summary |
 
-Example:
-
-```json
-{
-  "email": "sourabh@example.com",
-  "password": "password123"
-}
-```
-
----
-
-### Recordings
-
-All recording endpoints require:
-
-```http
-Authorization: Bearer <JWT_TOKEN>
-```
-
-#### Get recordings
-
-```http
-GET /api/recordings
-```
-
-#### Create recording metadata
-
-```http
-POST /api/recordings
-```
-
-#### Upload recording
-
-```http
-POST /api/recordings/upload
-```
-
-Multipart field:
-
-```text
-audio
-```
-
-Additional fields:
-
-```text
-name
-duration
-```
-
-#### Get recording
-
-```http
-GET /api/recordings/:id
-```
-
-#### Stream recording file
-
-```http
-GET /api/recordings/:id/file
-```
-
-#### Delete recording
-
-```http
-DELETE /api/recordings/:id
-```
-
----
-
-## WebSocket
-
-WebSocket endpoint:
-
-```text
-ws://localhost:5000/ws
-```
-
-Example event:
-
-```json
-{
-  "type": "recording:start"
-}
-```
-
-Server response:
-
-```json
-{
-  "type": "recording:status",
-  "status": "Recording",
-  "message": "Recording started"
-}
-```
-
-Stop event:
-
-```json
-{
-  "type": "recording:stop"
-}
-```
-
----
+The exact request payloads for audio conversion and trimming depend on the corresponding route implementation.
 
 ## Observability Stack
 
-Start the monitoring stack:
+The monitoring pipeline consists of:
 
-```powershell
-cd infrastructure
-docker compose up -d
-```
+1. The Express backend writes application logs.
+2. Promtail collects backend log entries.
+3. Loki stores and indexes the collected logs.
+4. Grafana queries Loki and displays monitoring dashboards.
+5. The React Observability page provides access to the dashboard.
 
-### Grafana
+Services:
 
-```text
-http://localhost:3000
-```
+| Service | Local URL |
+|---|---|
+| Grafana | http://localhost:3000 |
+| Loki | http://localhost:3100 |
+| Loki readiness check | http://localhost:3100/ready |
+| Backend health check | http://localhost:5000/api/health |
 
-### Loki
-
-```text
-http://localhost:3100
-```
-
-### Loki health
-
-```text
-http://localhost:3100/ready
-```
-
-Logs generated by the backend are written to:
+Backend logs are written to:
 
 ```text
 backend/logs/backend.log
 ```
 
-Promtail collects these logs and sends them to Loki.
-
-Grafana then visualizes the logs through the Design Recorder monitoring dashboard.
-
----
-
 ## Validation
 
-### Frontend lint
+The project has been tested during development for the following areas:
 
-```bash
+- Frontend linting and production builds
+- Backend JavaScript syntax
+- Authentication and protected routes
+- PostgreSQL connectivity and recording persistence
+- Audio upload and playback
+- Recording management operations
+- WebSocket communication
+- Audio conversion and trimming
+- Local Whisper transcription
+- Local Ollama summarization
+- Grafana, Loki, and Promtail integration
+
+Run the frontend checks:
+
+```powershell
 cd frontend
 npm run lint
-```
-
-### Frontend production build
-
-```bash
 npm run build
 ```
 
-### Backend syntax validation
+Run backend syntax validation:
 
-```bash
+```powershell
+cd backend
 node --check src/server.js
 ```
 
-The project has been validated with:
-
-- Frontend lint
-- Frontend production build
-- Backend JavaScript syntax checks
-- Authentication testing
-- Database testing
-- Recording upload testing
-- Recording playback testing
-- Recording deletion testing
-- WebSocket testing
-- Logging testing
-- Grafana/Loki/Promtail testing
-
----
+These commands are basic validation checks; they do not replace automated integration or end-to-end testing.
 
 ## Security Considerations
 
-The application includes:
+The application incorporates:
 
 - JWT authentication
 - Password hashing with bcrypt
-- Protected recording endpoints
+- Protected recording APIs
 - User ownership checks
-- File type validation
-- File size limits
-- Environment-based database credentials
-- Environment-based JWT secret
-- Automatic cleanup of failed uploads
+- File type and size validation
+- Environment-based secrets and database credentials
+- Cleanup of failed uploads
 - Authentication expiry handling
+- Git exclusions for sensitive configuration and runtime data
 
-The `.env`, recordings, logs, and infrastructure runtime data are excluded from Git.
-
----
+For deployment beyond a local development environment, additional security review and production configuration are recommended.
 
 ## Demo Flow
 
-A recommended demonstration flow:
+A recommended demonstration sequence:
 
-```text
-1. Start Docker infrastructure
-2. Start backend
-3. Start frontend
-4. Login
-5. Open Dashboard
-6. Start microphone recording
-7. Stop recording
-8. Open Recordings
-9. Play the saved recording
-10. Delete a recording
-11. Open Observability
-12. Show Grafana logs and recording activity
-```
-
----
+1. Start Docker infrastructure.
+2. Start the backend and frontend.
+3. Ensure Ollama is running.
+4. Log in to the application.
+5. Record and save audio.
+6. Open the Recordings page.
+7. Play or download a recording.
+8. Search, filter, sort, and rename recordings.
+9. Convert a recording and trim an audio segment.
+10. Generate a transcript using Whisper.
+11. Generate an AI summary using Ollama.
+12. Demonstrate trash and restore functionality.
+13. Open the Observability page and review Grafana logs.
 
 ## Future Improvements
 
-Potential future improvements include:
+Potential enhancements include:
 
-- Cloud object storage such as AWS S3
-- Production deployment
+- Cloud deployment and object storage such as AWS S3
+- Automated unit, integration, and end-to-end tests
+- CI/CD pipeline
 - Refresh token support
 - Role-based authorization
-- Recording search and filtering
-- Pagination
-- Recording download
-- Recording duration analytics
-- Automated tests
-- CI/CD pipeline
-- Dockerization of the complete application
 - Production-grade monitoring and alerting
-
----
+- Performance optimization for large recordings
+- Improved transcript and summary export options
 
 ## Author
 
@@ -733,18 +621,4 @@ Potential future improvements include:
 
 Full Stack Developer
 
-Technologies demonstrated in this project:
-
-```text
-React
-Node.js
-Express
-PostgreSQL
-REST APIs
-WebSocket
-JWT
-Docker
-Loki
-Promtail
-Grafana
-```
+Technologies demonstrated: React, Node.js, Express, PostgreSQL, REST APIs, WebSocket, JWT, Docker, Grafana, Loki, Promtail, FFmpeg, Python, Whisper, and Ollama.
