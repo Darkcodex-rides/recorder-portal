@@ -1,4 +1,4 @@
-import {
+﻿import {
   Check,
   Clock3,
   Download,
@@ -19,6 +19,8 @@ import { useRecordingContext } from "../../context/RecordingContext";
 import {
   getRecordingTranscript,
   transcribeRecording,
+  getRecordingSummary,
+  summarizeRecording,
 } from "../../services/api";
 
 
@@ -122,6 +124,11 @@ const [isTranscribing, setIsTranscribing] = useState(false);
 const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
 const [transcriptError, setTranscriptError] = useState("");
 const [showTranscript, setShowTranscript] = useState(false);
+
+const [summary, setSummary] = useState(null);
+const [isSummarizing, setIsSummarizing] = useState(false);
+const [isLoadingSummary, setIsLoadingSummary] = useState(false);
+const [summaryError, setSummaryError] = useState("");
 
 const startRename = () => {
   setRenameValue(recording.name);
@@ -260,6 +267,46 @@ const handleTranscribe = async () => {
     setIsTranscribing(false);
   }
 };
+
+
+const handleLoadSummary = async () => {
+  try {
+    setIsLoadingSummary(true);
+    setSummaryError("");
+
+    const result = await getRecordingSummary(recording.id);
+    const savedSummary = result.data ?? result;
+
+    setSummary(savedSummary);
+  } catch (error) {
+    console.error("Failed to load saved summary:", error);
+    setSummaryError(
+      error.message || "Failed to load saved summary."
+    );
+  } finally {
+    setIsLoadingSummary(false);
+  }
+};
+
+const handleSummarize = async () => {
+  try {
+    setIsSummarizing(true);
+    setSummaryError("");
+
+    const result = await summarizeRecording(recording.id);
+    const generatedSummary = result.data ?? result;
+
+    setSummary(generatedSummary);
+  } catch (error) {
+    console.error("AI summarization failed:", error);
+    setSummaryError(
+      error.message || "Failed to generate AI summary."
+    );
+  } finally {
+    setIsSummarizing(false);
+  }
+};
+
 
   const downloadRecording = () => {
     const link = document.createElement("a");
@@ -521,6 +568,57 @@ const handleTranscribe = async () => {
   </button>
 </div>
 
+
+<div className="recording-summary-actions">
+  <button
+    type="button"
+    className="recording-summary-button"
+    onClick={handleSummarize}
+    disabled={isSummarizing || isLoadingSummary}
+  >
+    <FileText size={16} />
+    {isSummarizing ? "Generating Summary..." : "Generate AI Summary"}
+  </button>
+
+  <button
+    type="button"
+    className="recording-summary-load-button"
+    onClick={handleLoadSummary}
+    disabled={isSummarizing || isLoadingSummary}
+  >
+    <RefreshCw size={16} />
+    {isLoadingSummary ? "Loading..." : "Load Saved Summary"}
+  </button>
+</div>
+
+{summaryError && (
+  <p className="recording-summary-error" role="alert">
+    {summaryError}
+  </p>
+)}
+
+{summary && (
+  <section className="recording-summary-panel">
+    <div className="recording-summary-header">
+      <h4>
+        <FileText size={18} />
+        AI Summary
+      </h4>
+
+      {summary.model && (
+        <span className="recording-summary-model">
+          {summary.model}
+        </span>
+      )}
+    </div>
+
+    <div className="recording-summary-text">
+      {summary.summary || "No summary content was returned."}
+    </div>
+  </section>
+)}
+
+
 {transcriptError && (
   <p className="recording-transcript-error" role="alert">
     {transcriptError}
@@ -565,7 +663,7 @@ const handleTranscribe = async () => {
               key={`${segment.start}-${index}`}
             >
               <span>
-                {formatDuration(segment.start)} –{" "}
+                {formatDuration(segment.start)} â€“{" "}
                 {formatDuration(segment.end)}
               </span>
 

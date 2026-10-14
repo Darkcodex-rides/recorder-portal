@@ -15,6 +15,7 @@ const {
   transcribeRecording,
   getRecordingTranscript,
 } = require("../controllers/recordingController");
+const { summarizeRecording, getRecordingSummary } = require("../controllers/summaryController");
 
 const upload = require("../middleware/upload");
 const authenticateToken = require("../middleware/authMiddleware");
@@ -60,6 +61,8 @@ router.get(
   getRecordingTranscript
 );
 
+router.get("/:id/summary", authenticateToken, getRecordingSummary);
+router.post("/:id/summarize", authenticateToken, summarizeRecording);
 router.get("/:id/file", authenticateToken, getRecordingFile);
 router.get("/:id", authenticateToken, getRecordingById);
 
