@@ -151,6 +151,8 @@ async function summarizeRecording(req, res) {
           options: {
             temperature: 0.2,
             num_predict: 400,
+            num_gpu: 0,
+            num_ctx: 2048,
           },
         }),
         signal: AbortSignal.timeout(120000),
