@@ -1,4 +1,4 @@
-﻿
+
 const API_BASE_URL = "http://localhost:5000/api";
 
 async function authenticatedFetch(url, options = {}) {
@@ -245,6 +245,42 @@ export async function summarizeRecording(id) {
   if (!response.ok) {
     throw new Error(
       result.message || "Failed to generate AI summary"
+    );
+  }
+
+  return result;
+}
+
+
+export async function getMeetingInsights(id) {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/recordings/${id}/insights`
+  );
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      result.message || "Failed to load saved meeting insights"
+    );
+  }
+
+  return result;
+}
+
+export async function generateMeetingInsights(id) {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/recordings/${id}/insights/generate`,
+    {
+      method: "POST",
+    }
+  );
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      result.message || "Failed to generate meeting insights"
     );
   }
 

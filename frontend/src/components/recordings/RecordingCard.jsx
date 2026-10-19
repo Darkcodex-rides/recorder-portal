@@ -6,6 +6,7 @@
   FileAudio,
   FileText,
   Languages,
+  ListChecks,
   RefreshCw,
   Scissors,
   Trash2,
@@ -21,6 +22,8 @@ import {
   transcribeRecording,
   getRecordingSummary,
   summarizeRecording,
+  getMeetingInsights,
+  generateMeetingInsights,
 } from "../../services/api";
 
 
@@ -129,6 +132,45 @@ const [summary, setSummary] = useState(null);
 const [isSummarizing, setIsSummarizing] = useState(false);
 const [isLoadingSummary, setIsLoadingSummary] = useState(false);
 const [summaryError, setSummaryError] = useState("");
+
+const [meetingInsights, setMeetingInsights] = useState(null);
+const [isGeneratingInsights, setIsGeneratingInsights] = useState(false);
+const [isLoadingInsights, setIsLoadingInsights] = useState(false);
+const [meetingInsightsError, setMeetingInsightsError] = useState("");
+
+const handleLoadMeetingInsights = async () => {
+  try {
+    setIsLoadingInsights(true);
+    setMeetingInsightsError("");
+
+    const result = await getMeetingInsights(recording.id);
+    setMeetingInsights(result.data ?? result);
+  } catch (error) {
+    console.error("Failed to load meeting insights:", error);
+    setMeetingInsightsError(
+      error.message || "Failed to load saved meeting insights."
+    );
+  } finally {
+    setIsLoadingInsights(false);
+  }
+};
+
+const handleGenerateMeetingInsights = async () => {
+  try {
+    setIsGeneratingInsights(true);
+    setMeetingInsightsError("");
+
+    const result = await generateMeetingInsights(recording.id);
+    setMeetingInsights(result.data ?? result);
+  } catch (error) {
+    console.error("Meeting insights generation failed:", error);
+    setMeetingInsightsError(
+      error.message || "Failed to generate meeting insights."
+    );
+  } finally {
+    setIsGeneratingInsights(false);
+  }
+};
 
 const startRename = () => {
   setRenameValue(recording.name);
@@ -615,6 +657,114 @@ const handleSummarize = async () => {
     <div className="recording-summary-text">
       {summary.summary || "No summary content was returned."}
     </div>
+  </section>
+)}
+
+
+
+<div className="meeting-insights-actions">
+  <button
+    type="button"
+    className="meeting-insights-button"
+    onClick={handleGenerateMeetingInsights}
+    disabled={isGeneratingInsights || isLoadingInsights}
+  >
+    <ListChecks size={16} />
+    {isGeneratingInsights
+      ? "Generating Insights..."
+      : meetingInsights
+        ? "Regenerate Meeting Insights"
+        : "Generate Meeting Insights"}
+  </button>
+
+  <button
+    type="button"
+    className="meeting-insights-load-button"
+    onClick={handleLoadMeetingInsights}
+    disabled={isGeneratingInsights || isLoadingInsights}
+  >
+    <RefreshCw size={16} />
+    {isLoadingInsights ? "Loading..." : "Load Saved Insights"}
+  </button>
+</div>
+
+{meetingInsightsError && (
+  <p className="meeting-insights-error" role="alert">
+    {meetingInsightsError}
+  </p>
+)}
+
+{meetingInsights?.insights && (
+  <section className="meeting-insights-panel">
+    <div className="meeting-insights-header">
+      <h4>
+        <ListChecks size={18} />
+        Meeting Intelligence
+      </h4>
+
+      {meetingInsights.model && (
+        <span className="meeting-insights-model">
+          {meetingInsights.model}
+        </span>
+      )}
+    </div>
+
+    <div className="meeting-insights-section">
+      <h5>Key Points</h5>
+
+      {meetingInsights.insights.keyPoints.length > 0 ? (
+        <ul>
+          {meetingInsights.insights.keyPoints.map((point, index) => (
+            <li key={`${index}-${point}`}>{point}</li>
+          ))}
+        </ul>
+      ) : (
+        <p>No key points identified.</p>
+      )}
+    </div>
+
+    <div className="meeting-insights-section">
+      <h5>Decisions</h5>
+
+      {meetingInsights.insights.decisions.length > 0 ? (
+        <ul>
+          {meetingInsights.insights.decisions.map((decision, index) => (
+            <li key={`${index}-${decision}`}>{decision}</li>
+          ))}
+        </ul>
+      ) : (
+        <p>No explicit decisions identified.</p>
+      )}
+    </div>
+
+    <div className="meeting-insights-section">
+      <h5>Action Items</h5>
+
+      {meetingInsights.insights.actionItems.length > 0 ? (
+        <ul className="meeting-insights-action-list">
+          {meetingInsights.insights.actionItems.map((item, index) => (
+            <li key={`${index}-${item.task}`}>
+              <strong>{item.task}</strong>
+              <div>
+                Owner: {item.owner || "Not specified"}
+              </div>
+              <div>
+                Deadline: {item.deadline || "Not specified"}
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>No explicit action items identified.</p>
+      )}
+    </div>
+
+    {meetingInsights.updatedAt && (
+      <p className="meeting-insights-updated">
+        Last updated:{" "}
+        {new Date(meetingInsights.updatedAt).toLocaleString("en-IN")}
+      </p>
+    )}
   </section>
 )}
 

@@ -17,8 +17,14 @@ const {
 } = require("../controllers/recordingController");
 const { summarizeRecording, getRecordingSummary } = require("../controllers/summaryController");
 
+const {
+  generateMeetingInsights,
+  getMeetingInsights,
+} = require("../controllers/meetingInsightsController");
+
 const upload = require("../middleware/upload");
 const authenticateToken = require("../middleware/authMiddleware");
+
 
 const router = express.Router();
 
@@ -59,6 +65,18 @@ router.get(
   "/:id/transcript",
   authenticateToken,
   getRecordingTranscript
+);
+
+router.post(
+  "/:id/insights/generate",
+  authenticateToken,
+  generateMeetingInsights
+);
+
+router.get(
+  "/:id/insights",
+  authenticateToken,
+  getMeetingInsights
 );
 
 router.get("/:id/summary", authenticateToken, getRecordingSummary);
