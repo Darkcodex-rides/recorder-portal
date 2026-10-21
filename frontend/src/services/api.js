@@ -286,3 +286,40 @@ export async function generateMeetingInsights(id) {
 
   return result;
 }
+
+
+
+export async function analyzeRecordingAudio(id) {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/recordings/${id}/analyze-audio`,
+    {
+      method: "POST",
+    }
+  );
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      result.message || "Failed to analyze recording audio"
+    );
+  }
+
+  return result;
+}
+
+export async function getRecordingAudioAnalysis(id) {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/recordings/${id}/audio-analysis`
+  );
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      result.message || "Failed to load audio analysis"
+    );
+  }
+
+  return result;
+}

@@ -22,6 +22,11 @@ const {
   getMeetingInsights,
 } = require("../controllers/meetingInsightsController");
 
+const {
+  analyzeRecordingAudio,
+  getRecordingAudioAnalysis,
+} = require("../controllers/audioAnalysisController");
+
 const upload = require("../middleware/upload");
 const authenticateToken = require("../middleware/authMiddleware");
 
@@ -77,6 +82,18 @@ router.get(
   "/:id/insights",
   authenticateToken,
   getMeetingInsights
+);
+
+router.post(
+  "/:id/analyze-audio",
+  authenticateToken,
+  analyzeRecordingAudio
+);
+
+router.get(
+  "/:id/audio-analysis",
+  authenticateToken,
+  getRecordingAudioAnalysis
 );
 
 router.get("/:id/summary", authenticateToken, getRecordingSummary);

@@ -40,3 +40,6 @@ npm-debug.log*
 backend/whisper-venv/
 __pycache__/
 *.pyc
+
+# Local audio emotion model environment
+backend/emotion-venv/

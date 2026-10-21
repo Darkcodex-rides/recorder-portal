@@ -1,4 +1,5 @@
 ﻿import {
+  Activity,
   Check,
   Clock3,
   Download,
@@ -24,6 +25,11 @@ import {
   summarizeRecording,
   getMeetingInsights,
   generateMeetingInsights,
+} from "../../services/api";
+
+import {
+  analyzeRecordingAudio,
+  getRecordingAudioAnalysis,
 } from "../../services/api";
 
 
@@ -138,6 +144,10 @@ const [isGeneratingInsights, setIsGeneratingInsights] = useState(false);
 const [isLoadingInsights, setIsLoadingInsights] = useState(false);
 const [meetingInsightsError, setMeetingInsightsError] = useState("");
 
+const [audioAnalysis, setAudioAnalysis] = useState(null);
+const [audioAnalysisLoading, setAudioAnalysisLoading] = useState(false);
+const [audioAnalysisError, setAudioAnalysisError] = useState("");
+
 const handleLoadMeetingInsights = async () => {
   try {
     setIsLoadingInsights(true);
@@ -171,6 +181,52 @@ const handleGenerateMeetingInsights = async () => {
     setIsGeneratingInsights(false);
   }
 };
+
+
+const handleAnalyzeAudio = async () => {
+  setAudioAnalysisLoading(true);
+  setAudioAnalysisError("");
+
+  try {
+    const result = await analyzeRecordingAudio(recording.id);
+    const saved = result.data ?? result.analysis;
+
+    if (!saved) {
+      throw new Error("The server returned no audio analysis.");
+    }
+
+    setAudioAnalysis(saved);
+  } catch (error) {
+    setAudioAnalysisError(
+      error.message || "Failed to analyze recording audio."
+    );
+  } finally {
+    setAudioAnalysisLoading(false);
+  }
+};
+
+const handleLoadAudioAnalysis = async () => {
+  setAudioAnalysisLoading(true);
+  setAudioAnalysisError("");
+
+  try {
+    const result = await getRecordingAudioAnalysis(recording.id);
+    const saved = result.data ?? result.analysis;
+
+    if (!saved) {
+      throw new Error("No saved audio analysis was returned.");
+    }
+
+    setAudioAnalysis(saved);
+  } catch (error) {
+    setAudioAnalysisError(
+      error.message || "Failed to load saved audio analysis."
+    );
+  } finally {
+    setAudioAnalysisLoading(false);
+  }
+};
+
 
 const startRename = () => {
   setRenameValue(recording.name);
@@ -767,6 +823,147 @@ const handleSummarize = async () => {
     )}
   </section>
 )}
+
+
+<section className="audio-analysis-section">
+  <h3>
+    <Activity size={18} aria-hidden="true" />
+    Audio Emotion &amp; Tone
+  </h3>
+
+  <div className="meeting-insights-actions audio-analysis-actions">
+  <button
+    type="button"
+    className="meeting-insights-button"
+    onClick={handleAnalyzeAudio}
+    disabled={audioAnalysisLoading}
+  >
+    {audioAnalysisLoading ? "Analyzing audio..." : "Analyze Audio"}
+  </button>
+
+  <button
+    type="button"
+    className="meeting-insights-load-button"
+    onClick={handleLoadAudioAnalysis}
+    disabled={audioAnalysisLoading}
+  >
+    Load Saved Analysis
+  </button>
+</div>
+
+  {audioAnalysisError && (
+    <p className="audio-analysis-error" role="alert">
+      {audioAnalysisError}
+    </p>
+  )}
+
+  {audioAnalysis && (
+    <div className="audio-analysis-results">
+      <h4>Vocal emotion timeline</h4>
+
+      {(
+        audioAnalysis.emotion_analysis?.segments ?? []
+      ).length === 0 ? (
+        <p>No emotion segments were returned.</p>
+      ) : (
+        <div className="audio-analysis-timeline">
+          {audioAnalysis.emotion_analysis.segments.map(
+            (segment, index) => (
+              <article
+                className="audio-analysis-segment"
+                key={`${segment.start_seconds}-${index}`}
+              >
+                <div className="audio-analysis-segment-heading">
+                  <strong>
+                    {String(segment.emotion ?? "Unknown")}
+                  </strong>
+                  <span>
+                    {Number(segment.start_seconds ?? 0).toFixed(1)}s
+                    {" – "}
+                    {Number(segment.end_seconds ?? 0).toFixed(1)}s
+                  </span>
+                </div>
+
+                <p>
+                  Confidence:{" "}
+                  {Number.isFinite(Number(segment.confidence))
+                    ? `${(Number(segment.confidence) * 100).toFixed(1)}%`
+                    : "Unavailable"}
+                </p>
+              </article>
+            )
+          )}
+        </div>
+      )}
+
+      <h4>Acoustic characteristics</h4>
+
+      {(audioAnalysis.tone_analysis?.segments ?? []).length === 0 ? (
+        <p>No tone measurements were returned.</p>
+      ) : (
+        <div className="audio-analysis-timeline">
+          {audioAnalysis.tone_analysis.segments.map(
+            (segment, index) => (
+              <article
+                className="audio-analysis-segment"
+                key={`${segment.start_seconds}-${index}`}
+              >
+                <strong>
+                  {Number(segment.start_seconds ?? 0).toFixed(1)}s
+                  {" – "}
+                  {Number(segment.end_seconds ?? 0).toFixed(1)}s
+                </strong>
+
+                <ul>
+                  <li>
+                    Median pitch:{" "}
+                    {segment.median_pitch_hz == null
+                      ? "Unavailable"
+                      : `${segment.median_pitch_hz} Hz`}
+                  </li>
+                  <li>
+                    Pitch range (10th–90th percentile):{" "}
+                    {segment.pitch_range_hz == null
+                      ? "Unavailable"
+                      : `${segment.pitch_range_hz.min}–${segment.pitch_range_hz.max} Hz`}
+                  </li>
+                  <li>
+                    Relative loudness:{" "}
+                    {segment.mean_loudness_dbfs == null
+                      ? "Unavailable"
+                      : `${segment.mean_loudness_dbfs} dBFS`}
+                  </li>
+                  <li>
+                    Mean RMS:{" "}
+                    {segment.mean_rms == null
+                      ? "Unavailable"
+                      : segment.mean_rms}
+                  </li>
+                  <li>
+                    Voiced-frame ratio:{" "}
+                    {segment.voiced_frame_ratio == null
+                      ? "Unavailable"
+                      : `${(
+                          segment.voiced_frame_ratio * 100
+                        ).toFixed(1)}%`}
+                  </li>
+                </ul>
+              </article>
+            )
+          )}
+        </div>
+      )}
+
+      <p className="audio-analysis-disclaimer">
+        Vocal emotion is an estimate from acoustic patterns and may not
+        reflect a person's actual feelings. Pitch and voice activity
+        are approximate, and dBFS is relative to the recording—not
+        calibrated sound pressure.
+      </p>
+    </div>
+  )}
+</section>
+
 
 
 {transcriptError && (
