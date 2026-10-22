@@ -32,6 +32,11 @@ import {
   getRecordingAudioAnalysis,
 } from "../../services/api";
 
+import {
+  analyzeRecordingSentiment,
+  getRecordingAudioSentiment,
+} from "../../services/api";
+
 
 function formatDuration(seconds) {
   const totalSeconds = Math.max(0, Number(seconds) || 0);
@@ -148,6 +153,10 @@ const [audioAnalysis, setAudioAnalysis] = useState(null);
 const [audioAnalysisLoading, setAudioAnalysisLoading] = useState(false);
 const [audioAnalysisError, setAudioAnalysisError] = useState("");
 
+const [audioSentiment, setAudioSentiment] = useState(null);
+const [audioSentimentLoading, setAudioSentimentLoading] = useState(false);
+const [audioSentimentError, setAudioSentimentError] = useState("");
+
 const handleLoadMeetingInsights = async () => {
   try {
     setIsLoadingInsights(true);
@@ -226,6 +235,54 @@ const handleLoadAudioAnalysis = async () => {
     setAudioAnalysisLoading(false);
   }
 };
+
+
+const handleAnalyzeSentiment = async () => {
+  setAudioSentimentLoading(true);
+  setAudioSentimentError("");
+
+  try {
+    const result = await analyzeRecordingSentiment(recording.id);
+    const saved = result.data ?? result.analysis;
+
+    if (!saved) {
+      throw new Error("The server returned no audio sentiment analysis.");
+    }
+
+    setAudioSentiment(saved);
+  } catch (error) {
+    console.error("Audio sentiment analysis failed:", error);
+    setAudioSentimentError(
+      error.message || "Failed to analyze audio sentiment."
+    );
+  } finally {
+    setAudioSentimentLoading(false);
+  }
+};
+
+const handleLoadAudioSentiment = async () => {
+  setAudioSentimentLoading(true);
+  setAudioSentimentError("");
+
+  try {
+    const result = await getRecordingAudioSentiment(recording.id);
+    const saved = result.data ?? result.analysis;
+
+    if (!saved) {
+      throw new Error("No saved audio sentiment analysis was returned.");
+    }
+
+    setAudioSentiment(saved);
+  } catch (error) {
+    console.error("Failed to load audio sentiment:", error);
+    setAudioSentimentError(
+      error.message || "Failed to load saved audio sentiment."
+    );
+  } finally {
+    setAudioSentimentLoading(false);
+  }
+};
+
 
 
 const startRename = () => {
@@ -963,6 +1020,115 @@ const handleSummarize = async () => {
     </div>
   )}
 </section>
+
+
+<section className="audio-sentiment-section">
+  <h3>
+    <Activity size={18} aria-hidden="true" />
+    Audio Sentiment Analysis
+  </h3>
+
+  <p className="audio-sentiment-description">
+    Estimates valence, arousal, and dominance directly from the audio
+    waveform. No transcript is used.
+  </p>
+
+  <div className="meeting-insights-actions audio-analysis-actions">
+    <button
+      type="button"
+      className="meeting-insights-button"
+      onClick={handleAnalyzeSentiment}
+      disabled={audioSentimentLoading}
+    >
+      {audioSentimentLoading
+        ? "Analyzing sentiment..."
+        : "Analyze Sentiment"}
+    </button>
+
+    <button
+      type="button"
+      className="meeting-insights-load-button"
+      onClick={handleLoadAudioSentiment}
+      disabled={audioSentimentLoading}
+    >
+      Load Saved Sentiment
+    </button>
+  </div>
+
+  {audioSentimentError && (
+    <p className="audio-analysis-error" role="alert">
+      {audioSentimentError}
+    </p>
+  )}
+
+  {audioSentiment && (
+    <div className="audio-sentiment-results">
+      <p>
+        Model:{" "}
+        {audioSentiment.sentiment_model ??
+          audioSentiment.sentiment_analysis?.model ??
+          "audeering/wav2small"}
+      </p>
+
+      {(
+        audioSentiment.sentiment_analysis?.segments ?? []
+      ).length === 0 ? (
+        <p>No sentiment segments were returned.</p>
+      ) : (
+        <div className="audio-analysis-timeline">
+          {audioSentiment.sentiment_analysis.segments.map(
+            (segment, index) => (
+              <article
+                className="audio-analysis-segment"
+                key={`${segment.start_seconds}-${index}`}
+              >
+                <div className="audio-analysis-segment-heading">
+                  <strong>
+                    Segment {index + 1}
+                  </strong>
+                  <span>
+                    {Number(segment.start_seconds ?? 0).toFixed(1)}s
+                    {" – "}
+                    {Number(segment.end_seconds ?? 0).toFixed(1)}s
+                  </span>
+                </div>
+
+                <ul>
+                  <li>
+                    Valence (negative–positive):{" "}
+                    {Number.isFinite(Number(segment.valence))
+                      ? Number(segment.valence).toFixed(3)
+                      : "Unavailable"}
+                  </li>
+                  <li>
+                    Arousal (calm–activated):{" "}
+                    {Number.isFinite(Number(segment.arousal))
+                      ? Number(segment.arousal).toFixed(3)
+                      : "Unavailable"}
+                  </li>
+                  <li>
+                    Dominance (less–more control):{" "}
+                    {Number.isFinite(Number(segment.dominance))
+                      ? Number(segment.dominance).toFixed(3)
+                      : "Unavailable"}
+                  </li>
+                </ul>
+              </article>
+            )
+          )}
+        </div>
+      )}
+
+      <p className="audio-analysis-disclaimer">
+        These are model-estimated affect dimensions, not verified
+        sentiment, a diagnosis, or calibrated confidence scores.
+        They may be influenced by speaking style, recording quality,
+        and other factors. Interpret them cautiously.
+      </p>
+    </div>
+  )}
+</section>
+
 
 
 

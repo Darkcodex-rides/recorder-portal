@@ -27,6 +27,11 @@ const {
   getRecordingAudioAnalysis,
 } = require("../controllers/audioAnalysisController");
 
+const {
+  analyzeRecordingSentiment,
+  getRecordingAudioSentiment,
+} = require("../controllers/audioSentimentController");
+
 const upload = require("../middleware/upload");
 const authenticateToken = require("../middleware/authMiddleware");
 
@@ -94,6 +99,18 @@ router.get(
   "/:id/audio-analysis",
   authenticateToken,
   getRecordingAudioAnalysis
+);
+
+router.post(
+  "/:id/analyze-sentiment",
+  authenticateToken,
+  analyzeRecordingSentiment
+);
+
+router.get(
+  "/:id/audio-sentiment",
+  authenticateToken,
+  getRecordingAudioSentiment
 );
 
 router.get("/:id/summary", authenticateToken, getRecordingSummary);

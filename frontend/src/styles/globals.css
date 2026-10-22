@@ -7028,3 +7028,30 @@ body {
   margin-top: 0.75rem;
   color: #dc2626;
 }
+
+/*---------*/
+
+.audio-sentiment-section {
+  margin-top: 1.25rem;
+}
+
+.audio-sentiment-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.audio-sentiment-description {
+  margin: 0.5rem 0 1rem;
+  line-height: 1.5;
+  opacity: 0.85;
+}
+
+.audio-sentiment-results {
+  margin-top: 1rem;
+}
+
+.audio-sentiment-results > p:first-child {
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}

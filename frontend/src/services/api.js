@@ -323,3 +323,39 @@ export async function getRecordingAudioAnalysis(id) {
 
   return result;
 }
+
+
+export async function analyzeRecordingSentiment(id) {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/recordings/${id}/analyze-sentiment`,
+    {
+      method: "POST",
+    }
+  );
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      result.message || "Failed to analyze audio sentiment."
+    );
+  }
+
+  return result;
+}
+
+export async function getRecordingAudioSentiment(id) {
+  const response = await authenticatedFetch(
+    `${API_BASE_URL}/recordings/${id}/audio-sentiment`
+  );
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      result.message || "Failed to load audio sentiment."
+    );
+  }
+
+  return result;
+}
