@@ -14,6 +14,9 @@ Users can record and manage audio in the browser, convert and trim recordings, g
 
 [▶️ Watch the New Features Demo on Loom](https://www.loom.com/share/cff0f6c7b7994c5ab155fb10964b86fc)
 
+### AI Meeting Intelligence, Emotion, Tone & Sentiment Analysis
+[Watch the AI Audio Analysis Demo](https://www.loom.com/share/37af2a8d88af48a3917e67e253955bd9)
+
 ## Features
 
 ### 1. Authentication and Security
